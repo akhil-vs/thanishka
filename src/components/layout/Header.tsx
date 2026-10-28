@@ -95,21 +95,18 @@ export function Header() {
 
           <Link
             href="/"
-            className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1"
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
             aria-label="Thanishka home"
           >
             <Image
-              src="/thanishka-mark.png"
-              alt=""
-              width={320}
+              src="/thanishka-logo.png"
+              alt="Thanishka — elegance, tailored to you"
+              width={465}
               height={320}
               priority
               unoptimized
-              className="h-12 w-12 object-contain md:h-[3.75rem] md:w-[3.75rem]"
+              className="h-14 w-auto object-contain [filter:drop-shadow(0_1px_1px_rgba(28,27,25,0.25))_drop-shadow(0_3px_6px_rgba(28,27,25,0.28))] md:h-[4.5rem]"
             />
-            <span className="font-display text-xs font-semibold leading-none tracking-[0.34em] text-ink md:text-[13px]">
-              Thanishka
-            </span>
           </Link>
 
           <div className="flex items-center gap-1 md:gap-2">
