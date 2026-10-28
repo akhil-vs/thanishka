@@ -56,7 +56,7 @@ export function Header() {
           hidden && !mobileNavOpen ? "-translate-y-full" : "translate-y-0",
         )}
       >
-        <div className="container-page flex h-16 items-center justify-between gap-4 md:h-20">
+        <div className="container-page relative flex h-20 items-center justify-between gap-4 md:h-24">
           <div className="flex items-center gap-3 md:hidden">
             <button
               aria-label="Open menu"
@@ -95,18 +95,21 @@ export function Header() {
 
           <Link
             href="/"
-            className="absolute left-1/2 -translate-x-1/2"
+            className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1"
             aria-label="Thanishka home"
           >
             <Image
-              src="/thanishka-logo.png"
-              alt="Thanishka — elegance, tailored to you"
-              width={389}
+              src="/thanishka-mark.png"
+              alt=""
+              width={320}
               height={320}
               priority
               unoptimized
-              className="h-11 w-auto md:h-14"
+              className="h-12 w-12 object-contain md:h-[3.75rem] md:w-[3.75rem]"
             />
+            <span className="font-display text-xs font-semibold leading-none tracking-[0.34em] text-ink md:text-[13px]">
+              Thanishka
+            </span>
           </Link>
 
           <div className="flex items-center gap-1 md:gap-2">
