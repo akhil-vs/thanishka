@@ -13,7 +13,7 @@ Premium readymade women's boutique storefront for Trivandrum, Kerala — Meshki-
 ```bash
 npm install
 cp .env.example .env
-# paste DATABASE_URL + DIRECT_URL from Vercel / Prisma Console
+# paste DATABASE_URL from Vercel / Prisma Console
 npx prisma migrate deploy
 npm run db:seed
 npm run dev
@@ -37,12 +37,14 @@ This is the same Prisma workflow you already use on other projects.
 3. Connect the Prisma Postgres database to **Production** (and Preview if you want).
    Vercel injects `DATABASE_URL` (and usually `POSTGRES_URL` / `PRISMA_DATABASE_URL`).
 4. In Vercel → **Settings → Environment Variables**, also set:
-   - `DIRECT_URL` — same as `DATABASE_URL`, or the direct (non-pooled) string from Prisma Console
-   - `ADMIN_JWT_SECRET` — long random secret
+   - `ADMIN_JWT_SECRET` — long random secret (required for admin login cookies)
    - `ADMIN_EMAIL` / `ADMIN_PASSWORD` — optional seed overrides
-5. Redeploy. `vercel.json` runs:
-   `prisma generate && prisma migrate deploy && prisma db seed && next build`
+5. Redeploy. `vercel.json` runs `scripts/vercel-build.sh`
+   (`prisma generate` → `migrate deploy` → `db seed` → `next build`).
 6. Open `https://YOUR_DOMAIN/admin` and sign in.
+
+If deploy fails with a database URL error, the Prisma Postgres storage is not
+connected to that Vercel environment yet — reconnect it under **Storage**.
 
 ### Local env from Vercel
 
@@ -51,7 +53,7 @@ npx vercel link
 npx vercel env pull .env
 ```
 
-Ensure `.env` has both `DATABASE_URL` and `DIRECT_URL`.
+Ensure `.env` includes `DATABASE_URL`.
 
 ## Admin backend
 

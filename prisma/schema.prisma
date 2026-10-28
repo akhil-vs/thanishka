@@ -3,11 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  // Optional: set DIRECT_URL to the non-pooled connection for migrations.
-  // If unset locally, mirror DATABASE_URL in .env.
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  // Vercel Marketplace Prisma Postgres injects DATABASE_URL automatically.
+  url      = env("DATABASE_URL")
 }
 
 model Admin {
