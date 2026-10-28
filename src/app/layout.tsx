@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Manrope, Syne } from "next/font/google";
-import { AnnouncementBar } from "@/components/layout/AnnouncementBar";
-import { Footer } from "@/components/layout/Footer";
-import { Header } from "@/components/layout/Header";
 import { Providers } from "@/components/layout/Providers";
 import "./globals.css";
 
@@ -47,13 +44,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${syne.variable} ${cormorant.variable} ${manrope.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-ivory text-charcoal pb-14 md:pb-0">
-        <Providers>
-          <AnnouncementBar />
-          <Header />
-          <main className="flex-1">{children}</main>
-          <Footer />
-        </Providers>
+      <body className="min-h-full flex flex-col bg-ivory text-charcoal">
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
