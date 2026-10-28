@@ -7,12 +7,9 @@ export DATABASE_URL="${DATABASE_URL:-${PRISMA_DATABASE_URL:-${POSTGRES_URL:-}}}"
 if [[ -z "${DATABASE_URL}" ]]; then
   echo "ERROR: DATABASE_URL is not set."
   echo "In Vercel → Storage, connect a Prisma Postgres database to this project,"
-  echo "or add DATABASE_URL (and optionally DIRECT_URL) under Environment Variables."
+  echo "or add DATABASE_URL under Environment Variables."
   exit 1
 fi
-
-# Some setups still provide DIRECT_URL; Prisma schema no longer requires it.
-export DIRECT_URL="${DIRECT_URL:-$DATABASE_URL}"
 
 echo "→ prisma generate"
 npx prisma generate
