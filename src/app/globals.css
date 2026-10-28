@@ -1,0 +1,151 @@
+@import "tailwindcss";
+
+:root {
+  --ivory: #f8f5f0;
+  --sand: #e8e0d4;
+  --mist: #f2ebe3;
+  --charcoal: #1c1b19;
+  --ink: #0b0b0a;
+  --muted: #6b6560;
+  --kasavu: #b8956c;
+  --kasavu-deep: #8f7048;
+  --emerald: #1a3c34;
+  --sale: #8b3a3a;
+  --line: rgba(28, 27, 25, 0.12);
+  --background: var(--ivory);
+  --foreground: var(--charcoal);
+}
+
+@theme inline {
+  --color-ivory: var(--ivory);
+  --color-sand: var(--sand);
+  --color-mist: var(--mist);
+  --color-charcoal: var(--charcoal);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-kasavu: var(--kasavu);
+  --color-kasavu-deep: var(--kasavu-deep);
+  --color-emerald: var(--emerald);
+  --color-sale: var(--sale);
+  --color-line: var(--line);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-display: var(--font-display);
+  --font-serif: var(--font-serif);
+  --font-sans: var(--font-sans);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Georgia, serif;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--kasavu) 45%, white);
+  color: var(--ink);
+}
+
+.font-display {
+  font-family: var(--font-display), system-ui, sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.font-serif {
+  font-family: var(--font-serif), Georgia, serif;
+}
+
+.container-page {
+  width: min(1440px, calc(100% - 2rem));
+  margin-inline: auto;
+}
+
+@media (min-width: 768px) {
+  .container-page {
+    width: min(1440px, calc(100% - 4rem));
+  }
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 32s linear infinite;
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.7s ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .marquee-track,
+  .animate-fade-up,
+  .product-card-image,
+  .hero-parallax {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+.product-card:hover .product-card-primary {
+  opacity: 0;
+}
+
+.product-card:hover .product-card-secondary {
+  opacity: 1;
+  transform: scale(1.04);
+}
+
+.product-card-primary,
+.product-card-secondary {
+  transition:
+    opacity 0.45s ease,
+    transform 0.7s ease;
+}
+
+.product-card-secondary {
+  opacity: 0;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
