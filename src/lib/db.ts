@@ -1,4 +1,7 @@
 import { PrismaClient } from "@prisma/client";
+import { ensureDatabaseUrl } from "@/lib/env";
+
+ensureDatabaseUrl();
 
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;
@@ -14,4 +17,11 @@ if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
 }
 
-export type { Admin, Product, Discount, Offer, HeroSlide, StockMovement } from "@prisma/client";
+export type {
+  Admin,
+  Product,
+  Discount,
+  Offer,
+  HeroSlide,
+  StockMovement,
+} from "@prisma/client";

@@ -36,15 +36,18 @@ This is the same Prisma workflow you already use on other projects.
 2. In the Vercel project → **Storage** → **Connect Database** → choose **Prisma** (Marketplace).
 3. Connect the Prisma Postgres database to **Production** (and Preview if you want).
    Vercel injects `DATABASE_URL` (and usually `POSTGRES_URL` / `PRISMA_DATABASE_URL`).
-4. In Vercel → **Settings → Environment Variables**, also set:
+4. Confirm the connected DB env vars exist for **Production and Preview**:
+   - `PRISMA_DATABASE_URL` / `POSTGRES_URL` (from Marketplace), **or**
+   - add `DATABASE_URL` yourself with the same Postgres connection string
+5. Also set:
    - `ADMIN_JWT_SECRET` — long random secret (required for admin login cookies)
    - `ADMIN_EMAIL` / `ADMIN_PASSWORD` — optional seed overrides
-5. Redeploy. `vercel.json` runs `scripts/vercel-build.sh`
+6. Redeploy. `vercel.json` runs `scripts/vercel-build.sh`
    (`prisma generate` → `migrate deploy` → `db seed` → `next build`).
-6. Open `https://YOUR_DOMAIN/admin` and sign in.
+7. Open `https://YOUR_DOMAIN/admin` and sign in.
 
-If deploy fails with a database URL error, the Prisma Postgres storage is not
-connected to that Vercel environment yet — reconnect it under **Storage**.
+If deploy fails with a database URL error, open Vercel → **Storage** → your
+Prisma DB → **Connect**, and enable the variable sync for Production + Preview.
 
 ### Local env from Vercel
 
