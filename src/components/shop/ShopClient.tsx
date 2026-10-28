@@ -8,7 +8,7 @@ import { cn } from "@/lib/format";
 
 const sizes: Size[] = ["XS", "S", "M", "L", "XL", "XXL"];
 const occasions = ["Onam", "Vishu", "Eid", "Christmas", "Party", "Day"];
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 8;
 
 export function ShopClient() {
   const params = useSearchParams();
