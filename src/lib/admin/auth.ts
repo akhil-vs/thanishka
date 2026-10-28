@@ -1,9 +1,8 @@
 import { compareSync } from "bcryptjs";
-import { eq } from "drizzle-orm";
+import type { Admin } from "@prisma/client";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
-import { getDb } from "@/db";
-import { admins, type Admin } from "@/db/schema";
+import { prisma } from "@/lib/db";
 
 export const ADMIN_COOKIE = "thanishka_admin_session";
 
@@ -48,10 +47,7 @@ export async function getAdminFromSession(): Promise<Admin | null> {
     const { payload } = await jwtVerify(token, secretKey());
     const id = typeof payload.sub === "string" ? payload.sub : null;
     if (!id) return null;
-
-    const db = getDb();
-    const admin = db.select().from(admins).where(eq(admins.id, id)).get();
-    return admin ?? null;
+    return prisma.admin.findUnique({ where: { id } });
   } catch {
     return null;
   }

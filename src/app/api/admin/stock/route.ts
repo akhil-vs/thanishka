@@ -1,32 +1,33 @@
-import { desc } from "drizzle-orm";
-import { getDb } from "@/db";
-import { products, stockMovements } from "@/db/schema";
 import { error, fromZod, json, requireAdmin } from "@/lib/admin/http";
 import { applyStockChange, totalUnits } from "@/lib/admin/stock";
+import { asSizeMap } from "@/lib/admin/types";
 import { stockSingleSchema } from "@/lib/admin/validators";
+import { prisma } from "@/lib/db";
 
 export async function GET() {
   const { response } = await requireAdmin();
   if (response) return response;
 
-  const db = getDb();
-  const rows = db.select().from(products).all();
-  const movements = db
-    .select()
-    .from(stockMovements)
-    .orderBy(desc(stockMovements.createdAt))
-    .limit(40)
-    .all();
+  const [rows, movements] = await Promise.all([
+    prisma.product.findMany({ orderBy: { name: "asc" } }),
+    prisma.stockMovement.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 40,
+    }),
+  ]);
 
   return json({
-    stock: rows.map((p) => ({
-      id: p.id,
-      name: p.name,
-      slug: p.slug,
-      active: p.active,
-      sizes: p.sizes,
-      total: totalUnits(p.sizes),
-    })),
+    stock: rows.map((p) => {
+      const sizes = asSizeMap(p.sizes);
+      return {
+        id: p.id,
+        name: p.name,
+        slug: p.slug,
+        active: p.active,
+        sizes,
+        total: totalUnits(sizes),
+      };
+    }),
     movements,
   });
 }
@@ -37,8 +38,7 @@ export async function PATCH(request: Request) {
 
   try {
     const body = stockSingleSchema.parse(await request.json());
-    const db = getDb();
-    const result = applyStockChange(db, {
+    const result = await applyStockChange({
       ...body,
       adminId: admin.id,
       source: "single",

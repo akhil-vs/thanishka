@@ -1,8 +1,6 @@
-import { eq } from "drizzle-orm";
-import { getDb } from "@/db";
-import { offers } from "@/db/schema";
 import { error, fromZod, json, requireAdmin } from "@/lib/admin/http";
 import { offerInputSchema } from "@/lib/admin/validators";
+import { prisma } from "@/lib/db";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -13,20 +11,28 @@ export async function PATCH(request: Request, { params }: Params) {
   try {
     const { id } = await params;
     const body = offerInputSchema.partial().parse(await request.json());
-    const db = getDb();
-    const existing = db.select().from(offers).where(eq(offers.id, id)).get();
+    const existing = await prisma.offer.findUnique({ where: { id } });
     if (!existing) return error("Offer not found", 404);
 
-    const updated = {
-      ...existing,
-      ...body,
-      startsAt: body.startsAt === undefined ? existing.startsAt : body.startsAt,
-      endsAt: body.endsAt === undefined ? existing.endsAt : body.endsAt,
-      updatedAt: new Date().toISOString(),
-    };
-
-    db.update(offers).set(updated).where(eq(offers.id, id)).run();
-    return json({ offer: updated });
+    const offer = await prisma.offer.update({
+      where: { id },
+      data: {
+        ...body,
+        startsAt:
+          body.startsAt === undefined
+            ? undefined
+            : body.startsAt
+              ? new Date(body.startsAt)
+              : null,
+        endsAt:
+          body.endsAt === undefined
+            ? undefined
+            : body.endsAt
+              ? new Date(body.endsAt)
+              : null,
+      },
+    });
+    return json({ offer });
   } catch (err) {
     if (err && typeof err === "object" && "issues" in err) {
       return fromZod(err as never);
@@ -40,9 +46,8 @@ export async function DELETE(_request: Request, { params }: Params) {
   if (response) return response;
 
   const { id } = await params;
-  const db = getDb();
-  const existing = db.select().from(offers).where(eq(offers.id, id)).get();
+  const existing = await prisma.offer.findUnique({ where: { id } });
   if (!existing) return error("Offer not found", 404);
-  db.delete(offers).where(eq(offers.id, id)).run();
+  await prisma.offer.delete({ where: { id } });
   return json({ ok: true });
 }

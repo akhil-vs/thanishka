@@ -1,38 +1,28 @@
-import { eq } from "drizzle-orm";
-import type { AppDb } from "@/db";
-import { products, stockMovements } from "@/db/schema";
+import { prisma } from "@/lib/db";
+import { asSizeMap, type SizeMap } from "@/lib/admin/types";
 
 export const SIZE_KEYS = ["XS", "S", "M", "L", "XL", "XXL"] as const;
 export type SizeKey = (typeof SIZE_KEYS)[number];
 
-function movementId() {
-  return `stk_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
-}
-
-export function applyStockChange(
-  db: AppDb,
-  opts: {
-    productId: string;
-    size: SizeKey;
-    mode: "set" | "adjust";
-    quantity?: number;
-    delta?: number;
-    note?: string;
-    source?: string;
-    adminId?: string | null;
-  },
-) {
-  const product = db
-    .select()
-    .from(products)
-    .where(eq(products.id, opts.productId))
-    .get();
+export async function applyStockChange(opts: {
+  productId: string;
+  size: SizeKey;
+  mode: "set" | "adjust";
+  quantity?: number;
+  delta?: number;
+  note?: string;
+  source?: string;
+  adminId?: string | null;
+}) {
+  const product = await prisma.product.findUnique({
+    where: { id: opts.productId },
+  });
 
   if (!product) {
     throw new Error(`Product ${opts.productId} not found`);
   }
 
-  const sizes = { ...product.sizes } as Record<SizeKey, number>;
+  const sizes = asSizeMap(product.sizes);
   const current = sizes[opts.size] ?? 0;
 
   let next = current;
@@ -53,26 +43,23 @@ export function applyStockChange(
   const delta = next - current;
   sizes[opts.size] = next;
 
-  db.update(products)
-    .set({
-      sizes,
-      updatedAt: new Date().toISOString(),
-    })
-    .where(eq(products.id, product.id))
-    .run();
-
-  db.insert(stockMovements)
-    .values({
-      id: movementId(),
-      productId: product.id,
-      size: opts.size,
-      delta,
-      quantityAfter: next,
-      note: opts.note ?? null,
-      source: opts.source ?? "manual",
-      adminId: opts.adminId ?? null,
-    })
-    .run();
+  await prisma.$transaction([
+    prisma.product.update({
+      where: { id: product.id },
+      data: { sizes },
+    }),
+    prisma.stockMovement.create({
+      data: {
+        productId: product.id,
+        size: opts.size,
+        delta,
+        quantityAfter: next,
+        note: opts.note ?? null,
+        source: opts.source ?? "manual",
+        adminId: opts.adminId ?? null,
+      },
+    }),
+  ]);
 
   return {
     productId: product.id,
@@ -83,6 +70,6 @@ export function applyStockChange(
   };
 }
 
-export function totalUnits(sizes: Record<string, number>) {
-  return Object.values(sizes).reduce((a, b) => a + b, 0);
+export function totalUnits(sizes: SizeMap | Record<string, number>) {
+  return Object.values(sizes).reduce((a, b) => a + Number(b || 0), 0);
 }

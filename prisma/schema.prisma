@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Optional: set DIRECT_URL to the non-pooled connection for migrations.
+  // If unset locally, mirror DATABASE_URL in .env.
+  directUrl = env("DIRECT_URL")
+}
+
+model Admin {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  stockMovements StockMovement[]
+
+  @@map("admins")
+}
+
+model Product {
+  id           String   @id @default(cuid())
+  slug         String   @unique
+  name         String
+  category     String
+  categorySlug String   @map("category_slug")
+  price        Int
+  compareAt    Int?     @map("compare_at")
+  colors       Json
+  fabric       String
+  occasion     Json
+  description  String
+  care         String
+  images       Json
+  sizes        Json
+  isNew        Boolean  @default(false) @map("is_new")
+  onSale       Boolean  @default(false) @map("on_sale")
+  featured     Boolean  @default(false)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  stockMovements StockMovement[]
+
+  @@map("products")
+}
+
+model StockMovement {
+  id            String   @id @default(cuid())
+  productId     String   @map("product_id")
+  size          String
+  delta         Int
+  quantityAfter Int      @map("quantity_after")
+  note          String?
+  source        String   @default("manual")
+  adminId       String?  @map("admin_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  admin   Admin?  @relation(fields: [adminId], references: [id])
+
+  @@index([productId])
+  @@index([createdAt])
+  @@map("stock_movements")
+}
+
+model Discount {
+  id        String    @id @default(cuid())
+  code      String    @unique
+  label     String
+  type      String
+  value     Float
+  minOrder  Int       @default(0) @map("min_order")
+  maxUses   Int?      @map("max_uses")
+  usedCount Int       @default(0) @map("used_count")
+  startsAt  DateTime? @map("starts_at")
+  endsAt    DateTime? @map("ends_at")
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@map("discounts")
+}
+
+model Offer {
+  id        String    @id @default(cuid())
+  title     String
+  eyebrow   String    @default("")
+  subtitle  String
+  ctaLabel  String    @map("cta_label")
+  ctaHref   String    @map("cta_href")
+  active    Boolean   @default(true)
+  sortOrder Int       @default(0) @map("sort_order")
+  startsAt  DateTime? @map("starts_at")
+  endsAt    DateTime? @map("ends_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@map("offers")
+}
+
+model HeroSlide {
+  id        String   @id @default(cuid())
+  title     String
+  subtitle  String
+  ctaLabel  String   @map("cta_label")
+  ctaHref   String   @map("cta_href")
+  imageUrl  String   @map("image_url")
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("hero_slides")
+}
