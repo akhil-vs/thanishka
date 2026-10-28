@@ -127,7 +127,7 @@ export function Header() {
           hidden && !mobileNavOpen ? "-translate-y-full" : "translate-y-0",
         )}
       >
-        <div className="container-page flex h-16 items-center justify-between gap-4 md:h-20">
+        <div className="container-page relative flex h-20 items-center justify-between gap-4 md:h-24">
           <div className="flex items-center gap-3 md:hidden">
             <button
               aria-label="Open menu"
@@ -173,17 +173,18 @@ export function Header() {
 
           <Link
             href="/"
-            className="absolute left-1/2 -translate-x-1/2"
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
             aria-label="Thanishka home"
             onMouseEnter={closeMega}
           >
             <Image
               src="/thanishka-logo.png"
               alt="Thanishka — elegance, tailored to you"
-              width={640}
-              height={640}
+              width={465}
+              height={320}
               priority
-              className="h-12 w-12 object-cover shadow-sm ring-1 ring-charcoal/10 md:h-14 md:w-14"
+              unoptimized
+              className="h-14 w-auto object-contain [filter:drop-shadow(0_1px_1px_rgba(28,27,25,0.25))_drop-shadow(0_3px_6px_rgba(28,27,25,0.28))] md:h-[4.5rem]"
             />
           </Link>
 
