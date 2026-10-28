@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Heart, Menu, Search, ShoppingBag, User, X } from "lucide-react";
@@ -21,8 +22,7 @@ export function Header() {
   const [hidden, setHidden] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [mega, setMega] = useState(false);
-  const { openCart, openMobileNav, mobileNavOpen, closeMobileNav, locale, toggleLocale } =
-    useUI();
+  const { openCart, openMobileNav, mobileNavOpen, closeMobileNav } = useUI();
   const count = useCart((s) => s.items.reduce((n, i) => n + i.quantity, 0));
   const wishCount = useWishlist((s) => s.ids.length);
 
@@ -95,24 +95,20 @@ export function Header() {
 
           <Link
             href="/"
-            className="absolute left-1/2 -translate-x-1/2 text-center"
+            className="absolute left-1/2 -translate-x-1/2"
+            aria-label="Thanishka home"
           >
-            <span className="font-display text-lg tracking-[0.35em] text-ink md:text-xl">
-              Thanishka
-            </span>
-            <span className="mt-0.5 block font-serif text-[10px] tracking-[0.18em] text-muted italic">
-              Trivandrum
-            </span>
+            <Image
+              src="/thanishka-logo.png"
+              alt="Thanishka — elegance, tailored to you"
+              width={640}
+              height={640}
+              priority
+              className="h-12 w-12 object-cover shadow-sm ring-1 ring-charcoal/10 md:h-14 md:w-14"
+            />
           </Link>
 
           <div className="flex items-center gap-1 md:gap-2">
-            <button
-              onClick={toggleLocale}
-              className="hidden px-2 py-1 font-display text-[10px] tracking-[0.16em] text-muted transition hover:text-charcoal md:inline"
-              aria-label="Toggle language"
-            >
-              {locale === "en" ? "മലയാളം" : "EN"}
-            </button>
             <Link href="/account" className="hidden p-2 md:inline-flex" aria-label="Account">
               <User size={18} strokeWidth={1.5} />
             </Link>
@@ -195,15 +191,6 @@ export function Header() {
                 {c.name}
               </Link>
             ))}
-            <button
-              onClick={() => {
-                toggleLocale();
-                closeMobileNav();
-              }}
-              className="mt-6 self-start font-display text-[11px] tracking-[0.18em] text-kasavu-deep"
-            >
-              {locale === "en" ? "Switch to Malayalam" : "Switch to English"}
-            </button>
           </nav>
         </div>
       )}
