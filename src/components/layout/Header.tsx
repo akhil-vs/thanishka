@@ -101,10 +101,11 @@ export function Header() {
             <Image
               src="/thanishka-logo.png"
               alt="Thanishka — elegance, tailored to you"
-              width={640}
-              height={640}
+              width={389}
+              height={320}
               priority
-              className="h-12 w-12 object-cover shadow-sm ring-1 ring-charcoal/10 md:h-14 md:w-14"
+              unoptimized
+              className="h-11 w-auto md:h-14"
             />
           </Link>
 
