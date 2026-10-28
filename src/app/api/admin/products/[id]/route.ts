@@ -1,8 +1,6 @@
-import { eq } from "drizzle-orm";
-import { getDb } from "@/db";
-import { products } from "@/db/schema";
 import { error, fromZod, json, requireAdmin } from "@/lib/admin/http";
 import { productInputSchema } from "@/lib/admin/validators";
+import { prisma } from "@/lib/db";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -11,8 +9,7 @@ export async function GET(_request: Request, { params }: Params) {
   if (response) return response;
 
   const { id } = await params;
-  const db = getDb();
-  const product = db.select().from(products).where(eq(products.id, id)).get();
+  const product = await prisma.product.findUnique({ where: { id } });
   if (!product) return error("Product not found", 404);
   return json({ product });
 }
@@ -24,20 +21,18 @@ export async function PATCH(request: Request, { params }: Params) {
   try {
     const { id } = await params;
     const body = productInputSchema.partial().parse(await request.json());
-    const db = getDb();
-    const existing = db.select().from(products).where(eq(products.id, id)).get();
+    const existing = await prisma.product.findUnique({ where: { id } });
     if (!existing) return error("Product not found", 404);
 
-    const updated = {
-      ...existing,
-      ...body,
-      compareAt:
-        body.compareAt === undefined ? existing.compareAt : body.compareAt,
-      updatedAt: new Date().toISOString(),
-    };
-
-    db.update(products).set(updated).where(eq(products.id, id)).run();
-    return json({ product: updated });
+    const product = await prisma.product.update({
+      where: { id },
+      data: {
+        ...body,
+        compareAt:
+          body.compareAt === undefined ? existing.compareAt : body.compareAt,
+      },
+    });
+    return json({ product });
   } catch (err) {
     if (err && typeof err === "object" && "issues" in err) {
       return fromZod(err as never);
@@ -51,14 +46,13 @@ export async function DELETE(_request: Request, { params }: Params) {
   if (response) return response;
 
   const { id } = await params;
-  const db = getDb();
-  const existing = db.select().from(products).where(eq(products.id, id)).get();
+  const existing = await prisma.product.findUnique({ where: { id } });
   if (!existing) return error("Product not found", 404);
 
-  db.update(products)
-    .set({ active: false, updatedAt: new Date().toISOString() })
-    .where(eq(products.id, id))
-    .run();
+  await prisma.product.update({
+    where: { id },
+    data: { active: false },
+  });
 
   return json({ ok: true });
 }

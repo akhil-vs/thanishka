@@ -1,26 +1,22 @@
-import { and, asc, eq } from "drizzle-orm";
 import { connection } from "next/server";
-import { getDb } from "@/db";
-import { heroSlides } from "@/db/schema";
 import { json } from "@/lib/admin/http";
+import { prisma } from "@/lib/db";
 
 export async function GET() {
   await connection();
-  const db = getDb();
-  const slides = db
-    .select()
-    .from(heroSlides)
-    .where(and(eq(heroSlides.active, true)))
-    .orderBy(asc(heroSlides.sortOrder))
-    .all()
-    .map((s) => ({
+  const slides = await prisma.heroSlide.findMany({
+    where: { active: true },
+    orderBy: { sortOrder: "asc" },
+  });
+
+  return json({
+    slides: slides.map((s) => ({
       id: s.id,
       title: s.title,
       subtitle: s.subtitle,
       cta: s.ctaLabel,
       href: s.ctaHref,
       image: s.imageUrl,
-    }));
-
-  return json({ slides });
+    })),
+  });
 }

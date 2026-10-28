@@ -1,4 +1,3 @@
-import { getDb } from "@/db";
 import { error, fromZod, json, requireAdmin } from "@/lib/admin/http";
 import { applyStockChange } from "@/lib/admin/stock";
 import { stockBulkSchema } from "@/lib/admin/validators";
@@ -9,12 +8,11 @@ export async function POST(request: Request) {
 
   try {
     const body = stockBulkSchema.parse(await request.json());
-    const db = getDb();
     const results = [];
 
     for (const item of body.items) {
       results.push(
-        applyStockChange(db, {
+        await applyStockChange({
           ...item,
           note: body.note,
           adminId: admin.id,

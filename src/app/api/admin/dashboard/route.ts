@@ -1,47 +1,38 @@
-import { count, desc, eq } from "drizzle-orm";
-import { getDb } from "@/db";
-import { discounts, heroSlides, offers, products, stockMovements } from "@/db/schema";
+import { asSizeMap } from "@/lib/admin/types";
 import { requireAdmin, json } from "@/lib/admin/http";
 import { totalUnits } from "@/lib/admin/stock";
+import { prisma } from "@/lib/db";
 
 export async function GET() {
   const { response } = await requireAdmin();
   if (response) return response;
 
-  const db = getDb();
-  const allProducts = db.select().from(products).all();
+  const [allProducts, discountCount, offerCount, heroCount, recentMovements] =
+    await Promise.all([
+      prisma.product.findMany(),
+      prisma.discount.count({ where: { active: true } }),
+      prisma.offer.count({ where: { active: true } }),
+      prisma.heroSlide.count({ where: { active: true } }),
+      prisma.stockMovement.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 8,
+      }),
+    ]);
+
   const activeProducts = allProducts.filter((p) => p.active);
-  const lowStock = activeProducts.filter((p) => totalUnits(p.sizes) <= 5);
-  const outOfStock = activeProducts.filter((p) => totalUnits(p.sizes) === 0);
-
-  const [{ value: discountCount }] = db
-    .select({ value: count() })
-    .from(discounts)
-    .where(eq(discounts.active, true))
-    .all();
-  const [{ value: offerCount }] = db
-    .select({ value: count() })
-    .from(offers)
-    .where(eq(offers.active, true))
-    .all();
-  const [{ value: heroCount }] = db
-    .select({ value: count() })
-    .from(heroSlides)
-    .where(eq(heroSlides.active, true))
-    .all();
-
-  const recentMovements = db
-    .select()
-    .from(stockMovements)
-    .orderBy(desc(stockMovements.createdAt))
-    .limit(8)
-    .all();
+  const withTotals = activeProducts.map((p) => ({
+    ...p,
+    sizes: asSizeMap(p.sizes),
+    total: totalUnits(asSizeMap(p.sizes)),
+  }));
+  const lowStock = withTotals.filter((p) => p.total <= 5);
+  const outOfStock = withTotals.filter((p) => p.total === 0);
 
   return json({
     stats: {
       products: allProducts.length,
       activeProducts: activeProducts.length,
-      totalUnits: activeProducts.reduce((sum, p) => sum + totalUnits(p.sizes), 0),
+      totalUnits: withTotals.reduce((sum, p) => sum + p.total, 0),
       lowStock: lowStock.length,
       outOfStock: outOfStock.length,
       discounts: discountCount,
@@ -52,7 +43,7 @@ export async function GET() {
       id: p.id,
       name: p.name,
       slug: p.slug,
-      total: totalUnits(p.sizes),
+      total: p.total,
       sizes: p.sizes,
     })),
     recentMovements,

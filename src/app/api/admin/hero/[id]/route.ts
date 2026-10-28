@@ -1,8 +1,6 @@
-import { eq } from "drizzle-orm";
-import { getDb } from "@/db";
-import { heroSlides } from "@/db/schema";
 import { error, fromZod, json, requireAdmin } from "@/lib/admin/http";
 import { heroInputSchema } from "@/lib/admin/validators";
+import { prisma } from "@/lib/db";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -13,22 +11,14 @@ export async function PATCH(request: Request, { params }: Params) {
   try {
     const { id } = await params;
     const body = heroInputSchema.partial().parse(await request.json());
-    const db = getDb();
-    const existing = db
-      .select()
-      .from(heroSlides)
-      .where(eq(heroSlides.id, id))
-      .get();
+    const existing = await prisma.heroSlide.findUnique({ where: { id } });
     if (!existing) return error("Hero slide not found", 404);
 
-    const updated = {
-      ...existing,
-      ...body,
-      updatedAt: new Date().toISOString(),
-    };
-
-    db.update(heroSlides).set(updated).where(eq(heroSlides.id, id)).run();
-    return json({ slide: updated });
+    const slide = await prisma.heroSlide.update({
+      where: { id },
+      data: body,
+    });
+    return json({ slide });
   } catch (err) {
     if (err && typeof err === "object" && "issues" in err) {
       return fromZod(err as never);
@@ -42,13 +32,8 @@ export async function DELETE(_request: Request, { params }: Params) {
   if (response) return response;
 
   const { id } = await params;
-  const db = getDb();
-  const existing = db
-    .select()
-    .from(heroSlides)
-    .where(eq(heroSlides.id, id))
-    .get();
+  const existing = await prisma.heroSlide.findUnique({ where: { id } });
   if (!existing) return error("Hero slide not found", 404);
-  db.delete(heroSlides).where(eq(heroSlides.id, id)).run();
+  await prisma.heroSlide.delete({ where: { id } });
   return json({ ok: true });
 }
