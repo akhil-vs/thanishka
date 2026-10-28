@@ -48,11 +48,11 @@ export const products: Product[] = [
     categorySlug: "gowns-anarkalis",
     price: 4999,
     compareAt: 5999,
-    colors: ["Ivory", "Gold"],
+    colors: ["Crimson", "Gold"],
     fabric: "Chanderi silk blend",
     occasion: ["Onam", "Festive", "Wedding"],
     description:
-      "A fluid ivory anarkali edged with a fine kasavu border — cut for movement, finished for celebration.",
+      "A fluid crimson anarkali edged with a fine kasavu border — cut for movement, finished for celebration.",
     care: "Dry clean only. Store folded with tissue.",
     images: [
       "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=1200&q=80",
@@ -141,7 +141,7 @@ export const products: Product[] = [
       "Straight kurta with tapered pants and a light dupatta. Everyday polish with Kerala ease.",
     care: "Hand wash separately. Shade dry.",
     images: [
-      "https://images.unsplash.com/photo-1583391733956-6c78276477e2?w=1200&q=80",
+      "https://images.unsplash.com/photo-1617019114583-affb34d1b3cd?w=1200&q=80",
       "https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=1200&q=80",
     ],
     sizes: sizesFull,
@@ -162,7 +162,7 @@ export const products: Product[] = [
     care: "Dry clean. Avoid direct sunlight when drying.",
     images: [
       "https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=1200&q=80",
-      "https://images.unsplash.com/photo-1583391733956-6c78276477e2?w=1200&q=80",
+      "https://images.unsplash.com/photo-1617019114583-affb34d1b3cd?w=1200&q=80",
     ],
     sizes: sizesFull,
     featured: true,
@@ -309,7 +309,7 @@ export const collections = [
     title: "Everyday Sets",
     subtitle: "Kurtis and co-ords for the week in Trivandrum.",
     image:
-      "https://images.unsplash.com/photo-1583391733956-6c78276477e2?w=1400&q=80",
+      "https://images.unsplash.com/photo-1617019114583-affb34d1b3cd?w=1400&q=80",
   },
 ];
 
