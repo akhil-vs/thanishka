@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Heart, Menu, Search, ShoppingBag, User, X } from "lucide-react";
 import { categories } from "@/lib/products";
 import { cn } from "@/lib/format";
@@ -18,20 +18,61 @@ const nav = [
   { href: "/contact", label: "Visit" },
 ];
 
+const MEGA_CLOSE_DELAY_MS = 120;
+
 export function Header() {
   const [hidden, setHidden] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [mega, setMega] = useState(false);
+  const megaCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const headerRef = useRef<HTMLElement>(null);
   const { openCart, openMobileNav, mobileNavOpen, closeMobileNav } = useUI();
   const count = useCart((s) => s.items.reduce((n, i) => n + i.quantity, 0));
   const wishCount = useWishlist((s) => s.ids.length);
+
+  const clearMegaCloseTimer = () => {
+    if (megaCloseTimer.current) {
+      clearTimeout(megaCloseTimer.current);
+      megaCloseTimer.current = null;
+    }
+  };
+
+  const openMega = () => {
+    clearMegaCloseTimer();
+    setMega(true);
+  };
+
+  const closeMega = () => {
+    clearMegaCloseTimer();
+    setMega(false);
+  };
+
+  const scheduleCloseMega = () => {
+    clearMegaCloseTimer();
+    megaCloseTimer.current = setTimeout(() => {
+      setMega(false);
+      megaCloseTimer.current = null;
+    }, MEGA_CLOSE_DELAY_MS);
+  };
+
+  useEffect(() => {
+    return () => clearMegaCloseTimer();
+  }, []);
 
   useEffect(() => {
     let last = window.scrollY;
     const onScroll = () => {
       const y = window.scrollY;
       setScrolled(y > 24);
-      setHidden(y > last && y > 120);
+      const nextHidden = y > last && y > 120;
+      setHidden(nextHidden);
+      if (nextHidden) {
+        if (megaCloseTimer.current) {
+          clearTimeout(megaCloseTimer.current);
+          megaCloseTimer.current = null;
+        }
+        setMega(false);
+      }
       last = y;
     };
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -45,9 +86,39 @@ export function Header() {
     };
   }, [mobileNavOpen]);
 
+  useEffect(() => {
+    if (!mega) return;
+
+    const dismiss = () => {
+      if (megaCloseTimer.current) {
+        clearTimeout(megaCloseTimer.current);
+        megaCloseTimer.current = null;
+      }
+      setMega(false);
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") dismiss();
+    };
+
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+      if (target && headerRef.current?.contains(target)) return;
+      dismiss();
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [mega]);
+
   return (
     <>
       <header
+        ref={headerRef}
         className={cn(
           "sticky top-0 z-40 border-b transition-transform duration-500",
           scrolled
@@ -75,9 +146,14 @@ export function Header() {
               item.label === "Shop" ? (
                 <button
                   key={item.href}
+                  type="button"
+                  aria-expanded={mega}
+                  aria-haspopup="true"
                   className="font-display text-[11px] tracking-[0.2em] text-charcoal/80 transition hover:text-charcoal"
-                  onMouseEnter={() => setMega(true)}
-                  onFocus={() => setMega(true)}
+                  onMouseEnter={openMega}
+                  onMouseLeave={scheduleCloseMega}
+                  onFocus={openMega}
+                  onBlur={scheduleCloseMega}
                 >
                   {item.label}
                 </button>
@@ -86,6 +162,8 @@ export function Header() {
                   key={item.href}
                   href={item.href}
                   className="font-display text-[11px] tracking-[0.2em] text-charcoal/80 transition hover:text-charcoal"
+                  onMouseEnter={closeMega}
+                  onFocus={closeMega}
                 >
                   {item.label}
                 </Link>
@@ -97,6 +175,7 @@ export function Header() {
             href="/"
             className="absolute left-1/2 -translate-x-1/2"
             aria-label="Thanishka home"
+            onMouseEnter={closeMega}
           >
             <Image
               src="/thanishka-logo.png"
@@ -108,7 +187,10 @@ export function Header() {
             />
           </Link>
 
-          <div className="flex items-center gap-1 md:gap-2">
+          <div
+            className="flex items-center gap-1 md:gap-2"
+            onMouseEnter={closeMega}
+          >
             <Link href="/account" className="hidden p-2 md:inline-flex" aria-label="Account">
               <User size={18} strokeWidth={1.5} />
             </Link>
@@ -140,7 +222,12 @@ export function Header() {
             "absolute inset-x-0 top-full hidden overflow-hidden border-b border-line bg-ivory transition-all duration-300 md:block",
             mega ? "max-h-72 opacity-100" : "pointer-events-none max-h-0 opacity-0",
           )}
-          onMouseLeave={() => setMega(false)}
+          onMouseEnter={openMega}
+          onMouseLeave={scheduleCloseMega}
+          onBlur={(event) => {
+            const next = event.relatedTarget as Node | null;
+            if (!event.currentTarget.contains(next)) scheduleCloseMega();
+          }}
         >
           <div className="container-page grid grid-cols-4 gap-8 py-8">
             {categories.map((c) => (
@@ -148,7 +235,8 @@ export function Header() {
                 key={c.slug}
                 href={`/shop?category=${c.slug}`}
                 className="group"
-                onClick={() => setMega(false)}
+                onClick={closeMega}
+                onFocus={openMega}
               >
                 <p className="font-display text-[11px] tracking-[0.18em] text-charcoal group-hover:text-kasavu-deep">
                   {c.name}
