@@ -4,23 +4,29 @@ import Image from "next/image";
 import Link from "next/link";
 import { X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { formatINR } from "@/lib/format";
 import { useCart } from "@/store/cart";
 import { useUI } from "@/store/ui";
+
+function useIsClient() {
+  return useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+}
 
 export function CartDrawer() {
   const { cartOpen, closeCart } = useUI();
   const { items, removeItem, updateQty, subtotal, coupon, setCoupon } =
     useCart();
   const [code, setCode] = useState("");
-  const [mounted, setMounted] = useState(false);
+  const mounted = useIsClient();
   const total = subtotal();
   const discount =
     coupon?.toUpperCase() === "THANISHKA10" ? Math.round(total * 0.1) : 0;
-
-  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     document.body.style.overflow = cartOpen ? "hidden" : "";

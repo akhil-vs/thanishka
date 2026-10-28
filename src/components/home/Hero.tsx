@@ -5,52 +5,60 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { ButtonLink } from "@/components/ui/Button";
 
-const slides = [
+type Slide = {
+  id?: string;
+  title: string;
+  subtitle: string;
+  cta: string;
+  href: string;
+  image: string;
+};
+
+const fallbackSlides: Slide[] = [
   {
     title: "Shop New",
-    subtitle: "Readymade dresses for Kerala light — from kasavu borders to evening gowns.",
+    subtitle:
+      "Readymade dresses for Kerala light — from kasavu borders to evening gowns.",
     cta: "Explore New In",
     href: "/shop?category=new-in",
     image:
       "https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=2000&q=80",
   },
-  {
-    title: "Onam Edit",
-    subtitle: "Ivory, gold, and celebration-ready silhouettes — stocked XS to XXL.",
-    cta: "Shop Festive",
-    href: "/shop?category=festive",
-    image:
-      "https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=2000&q=80",
-  },
-  {
-    title: "Party Night",
-    subtitle: "Editorial cuts with quiet drama. No custom stitching — just your size.",
-    cta: "Shop Party",
-    href: "/shop?category=party-western",
-    image:
-      "https://images.unsplash.com/photo-1566174053879-31528523f8ae?w=2000&q=80",
-  },
 ];
 
 export function Hero() {
+  const [slides, setSlides] = useState<Slide[]>(fallbackSlides);
   const [index, setIndex] = useState(0);
   const reduce = useReducedMotion();
 
   useEffect(() => {
-    if (reduce) return;
+    fetch("/api/hero")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data.slides) && data.slides.length > 0) {
+          setSlides(data.slides);
+        }
+      })
+      .catch(() => {
+        /* keep fallback */
+      });
+  }, []);
+
+  useEffect(() => {
+    if (reduce || slides.length <= 1) return;
     const id = setInterval(() => {
       setIndex((i) => (i + 1) % slides.length);
     }, 6500);
     return () => clearInterval(id);
-  }, [reduce]);
+  }, [reduce, slides.length]);
 
-  const slide = slides[index];
+  const slide = slides[index] ?? slides[0];
 
   return (
     <section className="relative h-[100svh] min-h-[560px] w-full overflow-hidden bg-charcoal">
       <AnimatePresence mode="wait">
         <motion.div
-          key={slide.image}
+          key={slide.image + slide.title}
           className="absolute inset-0"
           initial={{ opacity: 0, scale: 1.06 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -125,7 +133,7 @@ export function Hero() {
       <div className="absolute bottom-8 left-1/2 z-10 flex -translate-x-1/2 gap-2">
         {slides.map((s, i) => (
           <button
-            key={s.title}
+            key={`${s.title}-${i}`}
             aria-label={`Show slide ${i + 1}`}
             onClick={() => setIndex(i)}
             className={`h-1.5 transition-all ${
