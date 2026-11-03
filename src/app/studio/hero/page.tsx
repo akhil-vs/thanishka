@@ -1,1 +1,1 @@
-export { default } from "../../admin/hero/page";
+export { default } from "@/components/ops/HeroPage";
