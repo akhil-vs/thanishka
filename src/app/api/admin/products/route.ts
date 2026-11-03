@@ -1,10 +1,10 @@
-import { error, fromZod, json, requireAdmin } from "@/lib/admin/http";
+import { error, fromZod, json, requireBackoffice } from "@/lib/admin/http";
 import { asSizeMap, asStringArray } from "@/lib/admin/types";
 import { productInputSchema } from "@/lib/admin/validators";
 import { prisma } from "@/lib/db";
 
 export async function GET() {
-  const { response } = await requireAdmin();
+  const { response } = await requireBackoffice();
   if (response) return response;
 
   const rows = await prisma.product.findMany({
@@ -23,7 +23,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const { response } = await requireAdmin();
+  const { response } = await requireBackoffice();
   if (response) return response;
 
   try {

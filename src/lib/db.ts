@@ -14,4 +14,17 @@ if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
 }
 
-export type { Admin, Product, Discount, Offer, HeroSlide, StockMovement } from "@prisma/client";
+export type {
+  User,
+  Shop,
+  RoleAssignment,
+  CustomerProfile,
+  Address,
+  OtpChallenge,
+  Product,
+  Discount,
+  Offer,
+  HeroSlide,
+  StockMovement,
+  Role,
+} from "@prisma/client";
