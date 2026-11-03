@@ -1,11 +1,11 @@
-import { error, fromZod, json, requireAdmin } from "@/lib/admin/http";
+import { error, fromZod, json, requireBackoffice } from "@/lib/admin/http";
 import { applyStockChange, totalUnits } from "@/lib/admin/stock";
 import { asSizeMap } from "@/lib/admin/types";
 import { stockSingleSchema } from "@/lib/admin/validators";
 import { prisma } from "@/lib/db";
 
 export async function GET() {
-  const { response } = await requireAdmin();
+  const { response } = await requireBackoffice();
   if (response) return response;
 
   const [rows, movements] = await Promise.all([
@@ -33,14 +33,14 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
-  const { admin, response } = await requireAdmin();
-  if (response) return response;
+  const { user, response } = await requireBackoffice();
+  if (response || !user) return response;
 
   try {
     const body = stockSingleSchema.parse(await request.json());
     const result = await applyStockChange({
       ...body,
-      adminId: admin.id,
+      userId: user.id,
       source: "single",
     });
     return json({ result });

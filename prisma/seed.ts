@@ -1,10 +1,107 @@
+import { existsSync } from "node:fs";
 import { hashSync } from "bcryptjs";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Role } from "@prisma/client";
 import { products as mockProducts } from "../src/lib/products";
+
+// `npm run db:seed` does not load .env the way `prisma db seed` / migrate do.
+if (existsSync(".env") && typeof process.loadEnvFile === "function") {
+  process.loadEnvFile(".env");
+}
 
 const prisma = new PrismaClient();
 
+async function ensureShop() {
+  return prisma.shop.upsert({
+    where: { slug: "thanishka" },
+    update: { name: "Thanishka", active: true },
+    create: {
+      id: "shop_thanishka_default",
+      slug: "thanishka",
+      name: "Thanishka",
+      active: true,
+    },
+  });
+}
+
+async function ensureBackofficeUser(shopId: string) {
+  const email = (process.env.ADMIN_EMAIL ?? "admin@thanishka.com").toLowerCase();
+  const password = process.env.ADMIN_PASSWORD ?? "thanishka-admin";
+  const existing = await prisma.user.findUnique({
+    where: { email },
+    include: { roleAssignments: true },
+  });
+
+  if (!existing) {
+    const user = await prisma.user.create({
+      data: {
+        email,
+        name: "Thanishka Admin",
+        passwordHash: hashSync(password, 10),
+        roleAssignments: {
+          create: [
+            { role: Role.ADMIN },
+            { role: Role.SHOP_OWNER, shopId },
+          ],
+        },
+      },
+    });
+    console.log(`Seeded backoffice user ${email}`);
+    return user;
+  }
+
+  const hasAdmin = existing.roleAssignments.some((r) => r.role === Role.ADMIN);
+  const hasOwner = existing.roleAssignments.some(
+    (r) => r.role === Role.SHOP_OWNER && r.shopId === shopId,
+  );
+  if (!hasAdmin) {
+    await prisma.roleAssignment.create({
+      data: { userId: existing.id, role: Role.ADMIN },
+    });
+  }
+  if (!hasOwner) {
+    await prisma.roleAssignment.create({
+      data: { userId: existing.id, role: Role.SHOP_OWNER, shopId },
+    });
+  }
+  return existing;
+}
+
+async function ensureDemoCustomer() {
+  const email = "customer@thanishka.com";
+  const existing = await prisma.user.findUnique({
+    where: { email },
+    include: { roleAssignments: true },
+  });
+  if (existing) return;
+
+  await prisma.user.create({
+    data: {
+      email,
+      phone: "+919999000001",
+      name: "Demo Customer",
+      passwordHash: hashSync("thanishka-customer", 10),
+      customerProfile: { create: {} },
+      roleAssignments: { create: [{ role: Role.CUSTOMER }] },
+      addresses: {
+        create: {
+          label: "Home",
+          line1: "Near Kowdiar Palace",
+          city: "Thiruvananthapuram",
+          state: "Kerala",
+          postalCode: "695003",
+          phone: "+919999000001",
+          isDefault: true,
+        },
+      },
+    },
+  });
+  console.log(`Seeded demo customer ${email}`);
+}
+
 async function main() {
+  const shop = await ensureShop();
+  await ensureBackofficeUser(shop.id);
+
   const productCount = await prisma.product.count();
   if (productCount === 0) {
     await prisma.product.createMany({
@@ -30,20 +127,6 @@ async function main() {
       })),
     });
     console.log(`Seeded ${mockProducts.length} products`);
-  }
-
-  const adminCount = await prisma.admin.count();
-  if (adminCount === 0) {
-    const email = process.env.ADMIN_EMAIL ?? "admin@thanishka.com";
-    const password = process.env.ADMIN_PASSWORD ?? "thanishka-admin";
-    await prisma.admin.create({
-      data: {
-        email,
-        name: "Thanishka Admin",
-        passwordHash: hashSync(password, 10),
-      },
-    });
-    console.log(`Seeded admin ${email}`);
   }
 
   const discountCount = await prisma.discount.count();
@@ -118,6 +201,8 @@ async function main() {
     });
     console.log("Seeded hero slides");
   }
+
+  await ensureDemoCustomer();
 }
 
 main()

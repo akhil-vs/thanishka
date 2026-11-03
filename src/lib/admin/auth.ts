@@ -1,66 +1,50 @@
-import { compareSync } from "bcryptjs";
-import type { Admin } from "@prisma/client";
-import { SignJWT, jwtVerify } from "jose";
-import { cookies } from "next/headers";
-import { prisma } from "@/lib/db";
+import { Role } from "@prisma/client";
+import {
+  clearSession,
+  createSession,
+  readSession,
+  ADMIN_COOKIE,
+} from "@/lib/auth/sessions";
+import { verifyPassword } from "@/lib/auth/passwords";
+import type { ActorUser } from "@/lib/auth/types";
+import { getUserById, hasRole, publicUser, rolesOf } from "@/lib/auth/users";
+import { getAdminActor } from "@/lib/auth/policy";
 
-export const ADMIN_COOKIE = "thanishka_admin_session";
+export { ADMIN_COOKIE };
 
-function secretKey() {
-  const secret =
-    process.env.ADMIN_JWT_SECRET ?? "thanishka-dev-admin-secret-change-me";
-  return new TextEncoder().encode(secret);
-}
-
-export async function createAdminSession(admin: Admin) {
-  const token = await new SignJWT({
-    sub: admin.id,
-    email: admin.email,
-    name: admin.name,
-  })
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime("7d")
-    .sign(secretKey());
-
-  const jar = await cookies();
-  jar.set(ADMIN_COOKIE, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 7,
+export async function createAdminSession(user: ActorUser) {
+  if (!hasRole(user, Role.ADMIN)) {
+    throw new Error("User is not an admin");
+  }
+  await createSession({
+    sub: user.id,
+    email: user.email,
+    phone: user.phone,
+    name: user.name,
+    roles: rolesOf(user).filter((r) => r === Role.ADMIN),
+    shopId: null,
+    aud: "admin",
   });
 }
 
 export async function clearAdminSession() {
-  const jar = await cookies();
-  jar.delete(ADMIN_COOKIE);
+  await clearSession("admin");
 }
 
-export async function getAdminFromSession(): Promise<Admin | null> {
-  const jar = await cookies();
-  const token = jar.get(ADMIN_COOKIE)?.value;
-  if (!token) return null;
-
-  try {
-    const { payload } = await jwtVerify(token, secretKey());
-    const id = typeof payload.sub === "string" ? payload.sub : null;
-    if (!id) return null;
-    return prisma.admin.findUnique({ where: { id } });
-  } catch {
-    return null;
-  }
+export async function getAdminFromSession() {
+  return getAdminActor();
 }
 
-export function verifyAdminPassword(admin: Admin, password: string) {
-  return compareSync(password, admin.passwordHash);
+export function verifyAdminPassword(user: ActorUser, password: string) {
+  return verifyPassword(user.passwordHash, password);
 }
 
-export function publicAdmin(admin: Admin) {
-  return {
-    id: admin.id,
-    email: admin.email,
-    name: admin.name,
-  };
+export function publicAdmin(user: ActorUser) {
+  return publicUser(user);
 }
+
+export async function peekAdminSession() {
+  return readSession("admin");
+}
+
+export { getUserById };

@@ -12,7 +12,7 @@ export async function applyStockChange(opts: {
   delta?: number;
   note?: string;
   source?: string;
-  adminId?: string | null;
+  userId?: string | null;
 }) {
   const product = await prisma.product.findUnique({
     where: { id: opts.productId },
@@ -56,7 +56,7 @@ export async function applyStockChange(opts: {
         quantityAfter: next,
         note: opts.note ?? null,
         source: opts.source ?? "manual",
-        adminId: opts.adminId ?? null,
+        userId: opts.userId ?? null,
       },
     }),
   ]);

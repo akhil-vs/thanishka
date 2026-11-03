@@ -23,10 +23,18 @@ Open [http://localhost:3000](http://localhost:3000).
 
 Admin: [http://localhost:3000/admin](http://localhost:3000/admin)
 
-Default admin credentials (override with env):
+Backoffice credentials (override with env):
 
 - Email: `admin@thanishka.com`
 - Password: `thanishka-admin`
+- Admin UI: `/admin` (platform admin session)
+- Studio UI: `/studio` (shop owner / staff session — same seed user holds both roles)
+
+Demo customer (seeded):
+
+- Email: `customer@thanishka.com`
+- Password: `thanishka-customer`
+- Account: `/account` (OTP or email; OTP returns `devCode` when `OTP_DEV_MODE` is on)
 
 ## Deploy on Vercel (Prisma Postgres)
 
@@ -38,7 +46,8 @@ This is the same Prisma workflow you already use on other projects.
    Vercel injects `DATABASE_URL` (and usually `POSTGRES_URL` / `PRISMA_DATABASE_URL`).
 4. In Vercel → **Settings → Environment Variables**, also set:
    - `DIRECT_URL` — same as `DATABASE_URL`, or the direct (non-pooled) string from Prisma Console
-   - `ADMIN_JWT_SECRET` — long random secret
+   - `ADMIN_JWT_SECRET` / `STAFF_JWT_SECRET` / `CUSTOMER_JWT_SECRET` — long random secrets
+   - `OTP_DEV_MODE` / `OTP_DEV_CODE` / `OTP_PEPPER` — customer OTP (dev-friendly until SMS is wired)
    - `ADMIN_EMAIL` / `ADMIN_PASSWORD` — optional seed overrides
 5. Redeploy. `vercel.json` runs:
    `prisma generate && prisma migrate deploy && prisma db seed && next build`
@@ -53,7 +62,17 @@ npx vercel env pull .env
 
 Ensure `.env` has both `DATABASE_URL` and `DIRECT_URL`.
 
-## Admin backend
+## Accounts
+
+| Role | Surface | Auth |
+| --- | --- | --- |
+| **Admin** | `/admin` | Email + password → `thanishka_admin_session` |
+| **Shop owner / staff** | `/studio` | Email + password → `thanishka_staff_session` |
+| **Customer** | `/account` | OTP (primary) or email → `thanishka_customer_session` |
+
+Identity is a shared `User` model with `RoleAssignment` (`ADMIN`, `SHOP_OWNER`, `SHOP_STAFF`, `CUSTOMER`) and a `Shop` row (Thanishka). Catalogue/stock APIs accept either admin or staff sessions.
+
+## Admin / Studio backend
 
 | Area | Capabilities |
 | --- | --- |
@@ -67,6 +86,10 @@ Ensure `.env` has both `DATABASE_URL` and `DIRECT_URL`.
 ### Key API routes
 
 - `POST /api/admin/auth/login` · `POST /api/admin/auth/logout` · `GET /api/admin/auth/me`
+- `POST /api/auth/staff/login` · `POST /api/auth/staff/logout` · `GET /api/auth/staff/me`
+- `POST /api/auth/customer/otp/request` · `POST /api/auth/customer/otp/verify`
+- `POST /api/auth/customer/login` · `POST /api/auth/customer/register` · `POST /api/auth/customer/logout` · `GET /api/auth/customer/me`
+- `GET/POST /api/account/addresses` · `PATCH/DELETE /api/account/addresses/:id`
 - `GET/PATCH /api/admin/stock` · `POST /api/admin/stock/bulk`
 - `GET/POST /api/admin/products` · `PATCH/DELETE /api/admin/products/:id`
 - `GET/POST /api/admin/discounts` · `PATCH/DELETE /api/admin/discounts/:id`
@@ -84,4 +107,4 @@ Ensure `.env` has both `DATABASE_URL` and `DIRECT_URL`.
 
 ## Next phases
 
-Razorpay/Cashfree, Shiprocket, real OTP auth, Cloudinary uploads, GST invoicing.
+Razorpay/Cashfree, Shiprocket, SMS OTP provider, Cloudinary uploads, GST invoicing, order history on `/account`.

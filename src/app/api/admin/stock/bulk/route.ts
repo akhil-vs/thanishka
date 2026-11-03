@@ -1,10 +1,10 @@
-import { error, fromZod, json, requireAdmin } from "@/lib/admin/http";
+import { error, fromZod, json, requireBackoffice } from "@/lib/admin/http";
 import { applyStockChange } from "@/lib/admin/stock";
 import { stockBulkSchema } from "@/lib/admin/validators";
 
 export async function POST(request: Request) {
-  const { admin, response } = await requireAdmin();
-  if (response) return response;
+  const { user, response } = await requireBackoffice();
+  if (response || !user) return response;
 
   try {
     const body = stockBulkSchema.parse(await request.json());
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
         await applyStockChange({
           ...item,
           note: body.note,
-          adminId: admin.id,
+          userId: user.id,
           source: "bulk",
         }),
       );

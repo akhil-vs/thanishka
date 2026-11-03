@@ -1,11 +1,11 @@
-import { error, fromZod, json, requireAdmin } from "@/lib/admin/http";
+import { error, fromZod, json, requireBackoffice } from "@/lib/admin/http";
 import { offerInputSchema } from "@/lib/admin/validators";
 import { prisma } from "@/lib/db";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: Request, { params }: Params) {
-  const { response } = await requireAdmin();
+  const { response } = await requireBackoffice();
   if (response) return response;
 
   try {
@@ -42,7 +42,7 @@ export async function PATCH(request: Request, { params }: Params) {
 }
 
 export async function DELETE(_request: Request, { params }: Params) {
-  const { response } = await requireAdmin();
+  const { response } = await requireBackoffice();
   if (response) return response;
 
   const { id } = await params;

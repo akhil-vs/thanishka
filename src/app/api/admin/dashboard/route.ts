@@ -1,10 +1,10 @@
 import { asSizeMap } from "@/lib/admin/types";
-import { requireAdmin, json } from "@/lib/admin/http";
+import { requireBackoffice, json } from "@/lib/admin/http";
 import { totalUnits } from "@/lib/admin/stock";
 import { prisma } from "@/lib/db";
 
 export async function GET() {
-  const { response } = await requireAdmin();
+  const { response } = await requireBackoffice();
   if (response) return response;
 
   const [allProducts, discountCount, offerCount, heroCount, recentMovements] =

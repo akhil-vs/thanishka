@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useAdminResource } from "@/lib/admin/useAdminResource";
 
 type Dashboard = {
@@ -32,6 +33,8 @@ type Dashboard = {
 };
 
 export default function AdminDashboardPage() {
+  const pathname = usePathname();
+  const stockHref = pathname.startsWith("/studio") ? "/studio/stock" : "/admin/stock";
   const { data, error } = useAdminResource<Dashboard>("/api/admin/dashboard");
 
   if (error) {
@@ -81,7 +84,7 @@ export default function AdminDashboardPage() {
               Low stock
             </h2>
             <Link
-              href="/admin/stock"
+              href={stockHref}
               className="font-display text-[10px] tracking-[0.14em] text-kasavu-deep"
             >
               Manage
