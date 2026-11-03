@@ -1,140 +1,147 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useAdminResource } from "@/lib/admin/useAdminResource";
 
-type Dashboard = {
-  stats: {
-    products: number;
-    activeProducts: number;
-    totalUnits: number;
-    lowStock: number;
-    outOfStock: number;
-    discounts: number;
-    offers: number;
-    heroSlides: number;
-  };
-  lowStock: Array<{
+type PlatformOverview = {
+  shop: {
     id: string;
     name: string;
     slug: string;
-    total: number;
-  }>;
-  recentMovements: Array<{
-    id: string;
-    productId: string;
-    size: string;
-    delta: number;
-    quantityAfter: number;
-    source: string;
-    createdAt: string;
-  }>;
+    active: boolean;
+  };
+  counts: {
+    owners: number;
+    staff: number;
+    customers: number;
+  };
 };
 
-export default function AdminDashboardPage() {
-  const pathname = usePathname();
-  const stockHref = pathname.startsWith("/studio") ? "/studio/stock" : "/admin/stock";
-  const { data, error } = useAdminResource<Dashboard>("/api/admin/dashboard");
+type Dashboard = {
+  stats: {
+    activeProducts: number;
+    totalUnits: number;
+    lowStock: number;
+    discounts: number;
+    offers: number;
+  };
+};
 
-  if (error) {
-    return <p className="text-sale">{error}</p>;
+export default function AdminOverviewPage() {
+  const shop = useAdminResource<PlatformOverview>("/api/admin/shop");
+  const ops = useAdminResource<Dashboard>("/api/admin/dashboard");
+
+  if (shop.error) {
+    return <p className="text-sale">{shop.error}</p>;
   }
 
-  if (!data) {
-    return <p className="font-serif text-muted">Loading dashboard…</p>;
+  if (!shop.data) {
+    return <p className="font-serif text-muted">Loading platform…</p>;
   }
 
-  const cards = [
-    ["Products", data.stats.activeProducts],
-    ["Units in stock", data.stats.totalUnits],
-    ["Low stock", data.stats.lowStock],
-    ["Out of stock", data.stats.outOfStock],
-    ["Discounts", data.stats.discounts],
-    ["Offers", data.stats.offers],
-    ["Hero slides", data.stats.heroSlides],
-  ] as const;
+  const { shop: boutique, counts } = shop.data;
 
   return (
     <div>
-      <h1 className="font-display text-2xl tracking-[0.14em] md:text-3xl">
-        Dashboard
+      <p className="font-display text-[10px] tracking-[0.2em] text-kasavu-deep">
+        Platform control
+      </p>
+      <h1 className="mt-2 font-display text-2xl tracking-[0.14em] md:text-3xl">
+        Overview
       </h1>
-      <p className="mt-2 font-serif text-muted">
-        Boutique operations overview for Trivandrum stock and campaigns.
+      <p className="mt-2 max-w-xl font-serif text-muted">
+        Admin is for access, boutique settings, and system health — not daily
+        stock intake. Run the floor from Studio.
       </p>
 
-      <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {cards.map(([label, value]) => (
-          <div key={label} className="border border-line bg-ivory p-4">
+      <div className="mt-8 border border-charcoal/15 bg-ivory p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="font-display text-[10px] tracking-[0.16em] text-muted">
+              Active boutique
+            </p>
+            <h2 className="mt-2 font-display text-xl tracking-[0.12em]">
+              {boutique.name}
+            </h2>
+            <p className="mt-1 font-serif text-sm text-muted">
+              /{boutique.slug} · {boutique.active ? "Live" : "Paused"}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/admin/shop"
+              className="border border-line px-3 py-2 font-display text-[10px] tracking-[0.14em]"
+            >
+              Edit boutique
+            </Link>
+            <Link
+              href="/studio"
+              className="border border-charcoal bg-charcoal px-3 py-2 font-display text-[10px] tracking-[0.14em] text-ivory"
+            >
+              Open Studio
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+        {[
+          ["Shop owners", counts.owners, "/admin/access"],
+          ["Shop staff", counts.staff, "/admin/access"],
+          ["Customers", counts.customers, "/admin/access"],
+        ].map(([label, value, href]) => (
+          <Link
+            key={label as string}
+            href={href as string}
+            className="border border-charcoal/15 bg-ivory p-4 transition-colors hover:border-charcoal/40"
+          >
             <p className="font-display text-[10px] tracking-[0.16em] text-muted">
               {label}
             </p>
             <p className="mt-2 font-display text-2xl tracking-[0.08em]">
-              {value}
+              {value as number}
             </p>
-          </div>
+          </Link>
         ))}
       </div>
 
-      <div className="mt-10 grid gap-6 lg:grid-cols-2">
-        <section className="border border-line bg-ivory p-5">
-          <div className="flex items-center justify-between">
-            <h2 className="font-display text-[11px] tracking-[0.16em]">
-              Low stock
-            </h2>
-            <Link
-              href={stockHref}
-              className="font-display text-[10px] tracking-[0.14em] text-kasavu-deep"
-            >
-              Manage
-            </Link>
-          </div>
-          <ul className="mt-4 space-y-3">
-            {data.lowStock.length === 0 ? (
-              <li className="font-serif text-sm text-muted">All healthy.</li>
-            ) : (
-              data.lowStock.map((item) => (
-                <li
-                  key={item.id}
-                  className="flex items-center justify-between border-b border-line pb-2 text-sm"
-                >
-                  <span>{item.name}</span>
-                  <span className="font-display text-[10px] tracking-[0.12em] text-sale">
-                    {item.total} left
-                  </span>
-                </li>
-              ))
-            )}
-          </ul>
-        </section>
-
-        <section className="border border-line bg-ivory p-5">
+      <section className="mt-10 border border-charcoal/15 bg-ivory p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-display text-[11px] tracking-[0.16em]">
-            Recent stock moves
+            Floor snapshot
           </h2>
-          <ul className="mt-4 space-y-3">
-            {data.recentMovements.length === 0 ? (
-              <li className="font-serif text-sm text-muted">No movements yet.</li>
-            ) : (
-              data.recentMovements.map((m) => (
-                <li
-                  key={m.id}
-                  className="flex items-center justify-between border-b border-line pb-2 text-sm"
-                >
-                  <span>
-                    {m.productId} · {m.size}
-                  </span>
-                  <span className={m.delta >= 0 ? "text-emerald" : "text-sale"}>
-                    {m.delta >= 0 ? "+" : ""}
-                    {m.delta} → {m.quantityAfter}
-                  </span>
-                </li>
-              ))
-            )}
-          </ul>
-        </section>
-      </div>
+          <Link
+            href="/studio"
+            className="font-display text-[10px] tracking-[0.14em] text-kasavu-deep"
+          >
+            Manage in Studio
+          </Link>
+        </div>
+        {ops.error ? (
+          <p className="mt-4 text-sm text-sale">{ops.error}</p>
+        ) : !ops.data ? (
+          <p className="mt-4 font-serif text-sm text-muted">Loading…</p>
+        ) : (
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {[
+              ["Products", ops.data.stats.activeProducts],
+              ["Units", ops.data.stats.totalUnits],
+              ["Low stock", ops.data.stats.lowStock],
+              ["Coupons", ops.data.stats.discounts],
+              ["Offers", ops.data.stats.offers],
+            ].map(([label, value]) => (
+              <div key={label as string}>
+                <p className="font-display text-[9px] tracking-[0.14em] text-muted">
+                  {label}
+                </p>
+                <p className="mt-1 font-display text-xl tracking-[0.08em]">
+                  {value as number}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

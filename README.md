@@ -70,7 +70,9 @@ Ensure `.env` has both `DATABASE_URL` and `DIRECT_URL`.
 | **Shop owner / staff** | `/studio` | Email + password → `thanishka_staff_session` |
 | **Customer** | `/account` | OTP (primary) or email → `thanishka_customer_session` |
 
-Identity is a shared `User` model with `RoleAssignment` (`ADMIN`, `SHOP_OWNER`, `SHOP_STAFF`, `CUSTOMER`) and a `Shop` row (Thanishka). Catalogue/stock APIs accept either admin or staff sessions.
+Identity is a shared `User` model with `RoleAssignment` (`ADMIN`, `SHOP_OWNER`, `SHOP_STAFF`, `CUSTOMER`) and a `Shop` row (Thanishka).
+
+**UI split:** Admin is the dark platform console (Overview, Access, Boutique, System). Studio is the light boutique floor (Stock, Products, Discounts, Offers, Hero). Catalogue/stock APIs still accept either backoffice session.
 
 ## Admin / Studio backend
 

@@ -1,8 +1,26 @@
+import { Suspense } from "react";
 import { getCustomerActor, publicUser } from "@/lib/auth/policy";
 import { prisma } from "@/lib/db";
 import { AccountClient } from "./AccountClient";
 
-export default async function AccountPage() {
+// Session cookie is read at request time.
+export const instant = false;
+
+export default function AccountPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="container-page max-w-md py-16">
+          <p className="font-serif text-muted">Loading account…</p>
+        </div>
+      }
+    >
+      <AccountPageInner />
+    </Suspense>
+  );
+}
+
+async function AccountPageInner() {
   const user = await getCustomerActor();
   if (!user) {
     return <AccountClient initial={null} />;
