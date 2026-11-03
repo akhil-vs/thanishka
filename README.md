@@ -13,7 +13,7 @@ Premium readymade women's boutique storefront for Trivandrum, Kerala — Meshki-
 ```bash
 npm install
 cp .env.example .env
-# paste DATABASE_URL + DIRECT_URL from Vercel / Prisma Console
+# paste DATABASE_URL from Vercel / Prisma Console
 npx prisma migrate deploy
 npm run db:seed
 npm run dev
@@ -38,20 +38,26 @@ Demo customer (seeded):
 
 ## Deploy on Vercel (Prisma Postgres)
 
-This is the same Prisma workflow you already use on other projects.
+Backend is Next.js Route Handlers on the same Vercel project — no separate API service.
 
-1. **Push** this branch / merge to the GitHub repo connected to Vercel.
+1. **Push** this branch / merge to the GitHub repo connected to Vercel (`akhil-vikramans-projects/thanishka`).
 2. In the Vercel project → **Storage** → **Connect Database** → choose **Prisma** (Marketplace).
 3. Connect the Prisma Postgres database to **Production** (and Preview if you want).
-   Vercel injects `DATABASE_URL` (and usually `POSTGRES_URL` / `PRISMA_DATABASE_URL`).
-4. In Vercel → **Settings → Environment Variables**, also set:
-   - `DIRECT_URL` — same as `DATABASE_URL`, or the direct (non-pooled) string from Prisma Console
+   Vercel injects `DATABASE_URL` and/or `POSTGRES_URL` / `PRISMA_DATABASE_URL`.
+4. Confirm the connected DB env vars exist for **Production and Preview**:
+   - `PRISMA_DATABASE_URL` / `POSTGRES_URL` (from Marketplace), **or**
+   - add `DATABASE_URL` yourself with the same Postgres connection string
+5. In Vercel → **Settings → Environment Variables**, also set for Production (+ Preview):
    - `ADMIN_JWT_SECRET` / `STAFF_JWT_SECRET` / `CUSTOMER_JWT_SECRET` — long random secrets
    - `OTP_DEV_MODE` / `OTP_DEV_CODE` / `OTP_PEPPER` — customer OTP (dev-friendly until SMS is wired)
    - `ADMIN_EMAIL` / `ADMIN_PASSWORD` — optional seed overrides
-5. Redeploy. `vercel.json` runs:
-   `prisma generate && prisma migrate deploy && prisma db seed && next build`
-6. Open `https://YOUR_DOMAIN/admin` and sign in.
+6. Redeploy. `vercel.json` runs `scripts/vercel-build.sh`
+   (`prisma generate` → `migrate deploy` → `db seed` → `next build`).
+   The script remaps Marketplace URL aliases onto `DATABASE_URL` and fails clearly if Production has no DB URL.
+7. Open `https://YOUR_DOMAIN/admin` and sign in with the seeded admin.
+
+If deploy fails with a database URL error, open Vercel → **Storage** → your
+Prisma DB → **Connect**, and enable the variable sync for Production + Preview.
 
 ### Local env from Vercel
 
@@ -60,7 +66,7 @@ npx vercel link
 npx vercel env pull .env
 ```
 
-Ensure `.env` has both `DATABASE_URL` and `DIRECT_URL`.
+Ensure `.env` includes `DATABASE_URL` (or set it from `PRISMA_DATABASE_URL` / `POSTGRES_URL`).
 
 ## Accounts
 
