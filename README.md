@@ -6,6 +6,7 @@ Premium readymade women's boutique storefront for Trivandrum, Kerala — Meshki-
 
 - **Next.js** (App Router) + **Tailwind CSS** + **Framer Motion**
 - Client cart / wishlist via **Zustand** (persisted)
+- Checkout via **Razorpay** (Orders + Checkout.js) with server-priced totals, COD option, and Prisma `Order` records
 - Admin backend via **Next.js Route Handlers** + **Prisma ORM** + **PostgreSQL** (Vercel / Prisma Postgres)
 
 ## Develop
@@ -50,6 +51,8 @@ Backend is Next.js Route Handlers on the same Vercel project — no separate API
 5. In Vercel → **Settings → Environment Variables**, also set for Production (+ Preview):
    - `ADMIN_JWT_SECRET` / `STAFF_JWT_SECRET` / `CUSTOMER_JWT_SECRET` — long random secrets
    - `OTP_DEV_MODE` / `OTP_DEV_CODE` / `OTP_PEPPER` — customer OTP (dev-friendly until SMS is wired)
+   - `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` — Razorpay API keys (test or live)
+   - `RAZORPAY_WEBHOOK_SECRET` — optional; point webhook to `/api/checkout/webhook`
    - `ADMIN_EMAIL` / `ADMIN_PASSWORD` — optional seed overrides
 6. Redeploy. `vercel.json` runs `scripts/vercel-build.sh`
    (`prisma generate` → `migrate deploy` → `db seed` → `next build`).
@@ -102,15 +105,28 @@ Identity is a shared `User` model with `RoleAssignment` (`ADMIN`, `SHOP_OWNER`, 
 - `GET/POST /api/admin/offers` · `PATCH/DELETE /api/admin/offers/:id`
 - `GET/POST /api/admin/hero` · `PATCH/DELETE /api/admin/hero/:id`
 - Public: `GET /api/hero` · `GET /api/offers`
+- Checkout: `POST /api/checkout/quote` · `POST /api/checkout/create` · `POST /api/checkout/verify` · `GET /api/checkout/orders/:id` · `POST /api/checkout/webhook`
+- Account: `GET /api/account/orders`
+
+## Checkout / Razorpay
+
+1. Bag stays client-side (Zustand). Checkout posts line items to the server.
+2. Server loads live catalogue prices + stock from Postgres, applies `Discount` coupons, computes shipping (free above ₹1,999), and creates an `Order`.
+3. **Razorpay**: creates a Razorpay Order, opens Checkout.js, then `POST /api/checkout/verify` checks the HMAC signature and marks the order `PAID` (stock decremented).
+4. **COD**: creates `COD_CONFIRMED` immediately and reserves stock.
+5. Without Razorpay keys locally, prepaid uses a **dev complete** path (`RAZORPAY_DEV_MODE` or missing keys outside production). Production requires real keys.
+
+Webhook (optional): Razorpay → `POST /api/checkout/webhook` for `payment.captured`.
 
 ## Storefront (Phase 1–2)
 
 - Full-bleed hero slider, New In carousel, featured collections
 - Offer banner, Shop the Feed, testimonials, subscribe popup / footer
 - Shop filters (category, size, occasion) + sort
-- Product pages, bag, wishlist, guest checkout demo
-- Demo coupon: `THANISHKA10` (10% off)
+- Product pages, bag, wishlist, guest/account checkout with Razorpay + COD
+- Coupon: `THANISHKA10` (10% off) from the discounts table
+- Order confirmation at `/order/[id]`; signed-in history on `/account`
 
 ## Next phases
 
-Razorpay/Cashfree, Shiprocket, SMS OTP provider, Cloudinary uploads, GST invoicing, order history on `/account`.
+Shiprocket, SMS OTP provider, Cloudinary uploads, GST invoicing, admin order desk.

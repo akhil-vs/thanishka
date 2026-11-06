@@ -25,8 +25,6 @@ export function CartDrawer() {
   const [code, setCode] = useState("");
   const mounted = useIsClient();
   const total = subtotal();
-  const discount =
-    coupon?.toUpperCase() === "THANISHKA10" ? Math.round(total * 0.1) : 0;
 
   useEffect(() => {
     document.body.style.overflow = cartOpen ? "hidden" : "";
@@ -164,16 +162,14 @@ export function CartDrawer() {
                     Apply
                   </Button>
                 </form>
-                {coupon && (
+                {coupon ? (
                   <p className="mb-3 text-sm text-emerald">
-                    {discount > 0
-                      ? `THANISHKA10 applied (−${formatINR(discount)})`
-                      : "Coupon saved — valid codes apply at checkout"}
+                    Coupon {coupon} saved — applied at checkout
                   </p>
-                )}
+                ) : null}
                 <div className="mb-4 flex justify-between font-display text-[11px] tracking-[0.16em]">
                   <span>Subtotal</span>
-                  <span>{formatINR(total - discount)}</span>
+                  <span>{formatINR(total)}</span>
                 </div>
                 <ButtonLink
                   href="/cart"
@@ -184,7 +180,7 @@ export function CartDrawer() {
                   Checkout
                 </ButtonLink>
                 <p className="mt-3 text-center text-xs text-muted">
-                  UPI · Cards · Net banking · COD
+                  Razorpay · UPI · Cards · Net banking · COD
                 </p>
               </div>
             )}

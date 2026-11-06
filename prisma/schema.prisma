@@ -46,6 +46,7 @@ model User {
   customerProfile CustomerProfile?
   addresses       Address[]
   stockMovements  StockMovement[]
+  orders          Order[]
 
   @@map("users")
 }
@@ -133,6 +134,7 @@ model Product {
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   stockMovements StockMovement[]
+  orderItems     OrderItem[]
 
   @@map("products")
 }
@@ -172,7 +174,84 @@ model Discount {
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
 
+  orders Order[]
+
   @@map("discounts")
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  COD_CONFIRMED
+  PACKED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  PAYMENT_FAILED
+}
+
+enum PaymentMethod {
+  RAZORPAY
+  COD
+}
+
+model Order {
+  id                  String        @id @default(cuid())
+  orderNumber         String        @unique @map("order_number")
+  userId              String?       @map("user_id")
+  status              OrderStatus   @default(PENDING_PAYMENT)
+  paymentMethod       PaymentMethod @map("payment_method")
+  customerName        String        @map("customer_name")
+  customerEmail       String?       @map("customer_email")
+  customerPhone       String        @map("customer_phone")
+  shippingLine1       String        @map("shipping_line1")
+  shippingLine2       String?       @map("shipping_line2")
+  shippingCity        String        @map("shipping_city")
+  shippingState       String        @map("shipping_state")
+  shippingPostalCode  String        @map("shipping_postal_code")
+  subtotal            Int
+  discountAmount      Int           @default(0) @map("discount_amount")
+  shippingAmount      Int           @default(0) @map("shipping_amount")
+  total               Int
+  couponCode          String?       @map("coupon_code")
+  discountId          String?       @map("discount_id")
+  razorpayOrderId     String?       @unique @map("razorpay_order_id")
+  razorpayPaymentId   String?       @map("razorpay_payment_id")
+  razorpaySignature   String?       @map("razorpay_signature")
+  paidAt              DateTime?     @map("paid_at")
+  stockReserved       Boolean       @default(false) @map("stock_reserved")
+  notes               String?
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt @map("updated_at")
+
+  user     User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  discount Discount?   @relation(fields: [discountId], references: [id], onDelete: SetNull)
+  items    OrderItem[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id           String @id @default(cuid())
+  orderId      String @map("order_id")
+  productId    String @map("product_id")
+  productName  String @map("product_name")
+  productSlug  String @map("product_slug")
+  productImage String? @map("product_image")
+  size         String
+  unitPrice    Int    @map("unit_price")
+  quantity     Int
+  lineTotal    Int    @map("line_total")
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
 }
 
 model Offer {
