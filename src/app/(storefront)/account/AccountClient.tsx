@@ -1,9 +1,12 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { authFetch } from "@/lib/auth/client";
 import type { PublicUser } from "@/lib/auth/types";
+import type { SerializedOrder } from "@/lib/checkout/types";
+import { formatINR } from "@/lib/format";
 
 type Address = {
   id: string;
@@ -22,7 +25,13 @@ export type MeResponse = {
   addresses: Address[];
 };
 
-export function AccountClient({ initial }: { initial: MeResponse | null }) {
+export function AccountClient({
+  initial,
+  initialOrders = [],
+}: {
+  initial: MeResponse | null;
+  initialOrders?: SerializedOrder[];
+}) {
   const [mode, setMode] = useState<"otp" | "email" | "register">("otp");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -31,10 +40,23 @@ export function AccountClient({ initial }: { initial: MeResponse | null }) {
   const [devCode, setDevCode] = useState<string | null>(null);
   const [maskedPhone, setMaskedPhone] = useState("");
   const [showAddressForm, setShowAddressForm] = useState(false);
+  const [orders, setOrders] = useState<SerializedOrder[]>(initialOrders);
+
+  async function refreshOrders() {
+    try {
+      const data = await authFetch<{ orders: SerializedOrder[] }>(
+        "/api/account/orders",
+      );
+      setOrders(data.orders);
+    } catch {
+      setOrders([]);
+    }
+  }
 
   async function refreshMe() {
     const data = await authFetch<MeResponse>("/api/auth/customer/me");
     setMe(data);
+    await refreshOrders();
   }
 
   async function requestOtp(e: FormEvent<HTMLFormElement>) {
@@ -122,6 +144,7 @@ export function AccountClient({ initial }: { initial: MeResponse | null }) {
     try {
       await authFetch("/api/auth/customer/logout", { method: "POST" });
       setMe(null);
+      setOrders([]);
       setShowAddressForm(false);
     } finally {
       setBusy(false);
@@ -185,9 +208,42 @@ export function AccountClient({ initial }: { initial: MeResponse | null }) {
           </Button>
         </div>
 
+        <section className="mt-10 border border-line p-5">
+          <h2 className="font-display text-[11px] tracking-[0.16em]">
+            Order history
+          </h2>
+          {orders.length === 0 ? (
+            <p className="mt-3 font-serif text-muted">
+              No orders yet — checkout from your bag when you are ready.
+            </p>
+          ) : (
+            <ul className="mt-4 divide-y divide-line">
+              {orders.map((order) => (
+                <li
+                  key={order.id}
+                  className="flex flex-wrap items-baseline justify-between gap-2 py-3 text-sm"
+                >
+                  <div>
+                    <Link
+                      href={`/order/${order.id}`}
+                      className="font-display text-[11px] tracking-[0.12em] underline-offset-2 hover:underline"
+                    >
+                      {order.orderNumber}
+                    </Link>
+                    <p className="mt-1 text-muted">
+                      {order.status.replaceAll("_", " ")} ·{" "}
+                      {new Date(order.createdAt).toLocaleDateString("en-IN")}
+                    </p>
+                  </div>
+                  <p>{formatINR(order.total)}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
         <div className="mt-10 grid gap-4 md:grid-cols-2">
           {[
-            ["Order history", "Coming with checkout — Placed → Packed → Shipped"],
             ["Wishlist", "Synced wishlist lands with the next commerce pass"],
             ["Returns", "Request exchange or return from delivered orders"],
           ].map(([title, body]) => (
