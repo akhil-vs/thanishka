@@ -29,5 +29,9 @@ export type {
   Offer,
   HeroSlide,
   StockMovement,
+  Order,
+  OrderItem,
+  OrderStatus,
+  PaymentMethod,
   Role,
 } from "@prisma/client";
