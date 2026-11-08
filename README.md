@@ -54,6 +54,7 @@ Backend is Next.js Route Handlers on the same Vercel project — no separate API
    - `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` — Razorpay API keys (test or live)
    - `RAZORPAY_WEBHOOK_SECRET` — optional; point webhook to `/api/checkout/webhook`
    - `ADMIN_EMAIL` / `ADMIN_PASSWORD` — optional seed overrides
+   - `BLOB_READ_WRITE_TOKEN` — from Vercel → Storage → Blob (admin image uploads on Products / Hero)
 6. Redeploy. `vercel.json` runs `scripts/vercel-build.sh`
    (`prisma generate` → `migrate deploy` → `db seed` → `next build`).
    The script remaps Marketplace URL aliases onto `DATABASE_URL` and fails clearly if Production has no DB URL.
@@ -86,11 +87,12 @@ Identity is a shared `User` model with `RoleAssignment` (`ADMIN`, `SHOP_OWNER`, 
 | Area | Capabilities |
 | --- | --- |
 | **Stock** | Single size adjust/set + bulk CSV-style intake + movement log |
-| **Products** | Create catalogue items, archive/activate |
+| **Products** | Create catalogue items with image upload, archive/activate |
 | **Discounts** | Create/enable/disable/delete coupon codes |
 | **Offers** | Manage promotional banners (feeds homepage offer) |
-| **Hero images** | Manage homepage slider slides (feeds `/api/hero`) |
+| **Hero images** | Manage homepage slider slides (feeds `/api/hero`) — file upload |
 | **Dashboard** | Units, low stock, recent movements, campaign counts |
+| **Uploads** | `POST /api/admin/uploads` — JPEG/PNG/WebP/GIF (max 4 MB); Vercel Blob in production, `public/uploads` locally |
 
 ### Key API routes
 
@@ -104,6 +106,7 @@ Identity is a shared `User` model with `RoleAssignment` (`ADMIN`, `SHOP_OWNER`, 
 - `GET/POST /api/admin/discounts` · `PATCH/DELETE /api/admin/discounts/:id`
 - `GET/POST /api/admin/offers` · `PATCH/DELETE /api/admin/offers/:id`
 - `GET/POST /api/admin/hero` · `PATCH/DELETE /api/admin/hero/:id`
+- `POST /api/admin/uploads` — multipart image upload for admin/studio
 - Public: `GET /api/hero` · `GET /api/offers`
 - Checkout: `POST /api/checkout/quote` · `POST /api/checkout/create` · `POST /api/checkout/verify` · `GET /api/checkout/orders/:id` · `POST /api/checkout/webhook`
 - Account: `GET /api/account/orders`
@@ -129,4 +132,4 @@ Webhook (optional): Razorpay → `POST /api/checkout/webhook` for `payment.captu
 
 ## Next phases
 
-Shiprocket, SMS OTP provider, Cloudinary uploads, GST invoicing, admin order desk.
+Shiprocket, SMS OTP provider, GST invoicing, admin order desk.
