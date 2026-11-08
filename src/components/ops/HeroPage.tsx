@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import Image from "next/image";
+import { ImageUploader } from "@/components/admin/ImageUploader";
 import { Button } from "@/components/ui/Button";
 import { adminFetch } from "@/lib/admin/client";
 import { useAdminResource } from "@/lib/admin/useAdminResource";
@@ -22,8 +23,7 @@ const empty = {
   subtitle: "",
   ctaLabel: "Shop",
   ctaHref: "/shop",
-  imageUrl:
-    "https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=2000&q=80",
+  imageUrl: "",
   sortOrder: 0,
   active: true,
 };
@@ -40,6 +40,10 @@ export default function HeroPage() {
     e.preventDefault();
     setError("");
     setMessage("");
+    if (!form.imageUrl) {
+      setError("Upload a hero image before creating the slide.");
+      return;
+    }
     try {
       await adminFetch("/api/admin/hero", {
         method: "POST",
@@ -127,14 +131,14 @@ export default function HeroPage() {
           onChange={(e) => setForm((f) => ({ ...f, ctaHref: e.target.value }))}
           className="border border-line px-3 py-2"
         />
-        <input
-          required
-          placeholder="Image URL"
-          value={form.imageUrl}
-          onChange={(e) =>
-            setForm((f) => ({ ...f, imageUrl: e.target.value }))
+        <ImageUploader
+          label="Hero image"
+          hint="Upload one full-bleed slide image. JPEG, PNG, WebP or GIF · max 4 MB."
+          values={form.imageUrl ? [form.imageUrl] : []}
+          onChange={(urls) =>
+            setForm((f) => ({ ...f, imageUrl: urls[0] ?? "" }))
           }
-          className="border border-line px-3 py-2 md:col-span-2"
+          maxFiles={1}
         />
         <div className="md:col-span-2">
           <Button type="submit">Create slide</Button>
@@ -149,6 +153,7 @@ export default function HeroPage() {
                 src={s.imageUrl}
                 alt={s.title}
                 fill
+                unoptimized={s.imageUrl.startsWith("/uploads/")}
                 className="object-cover"
                 sizes="(max-width:768px) 100vw, 50vw"
               />

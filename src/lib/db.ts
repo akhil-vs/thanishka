@@ -1,4 +1,7 @@
 import { PrismaClient } from "@prisma/client";
+import { ensureDatabaseUrl } from "@/lib/env";
+
+ensureDatabaseUrl();
 
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;
@@ -26,5 +29,9 @@ export type {
   Offer,
   HeroSlide,
   StockMovement,
+  Order,
+  OrderItem,
+  OrderStatus,
+  PaymentMethod,
   Role,
 } from "@prisma/client";

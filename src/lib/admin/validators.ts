@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isImageRef } from "@/lib/admin/image-ref";
 
 export const sizesSchema = z.object({
   XS: z.number().int().min(0),
@@ -8,6 +9,11 @@ export const sizesSchema = z.object({
   XL: z.number().int().min(0),
   XXL: z.number().int().min(0),
 });
+
+export const imageRefSchema = z
+  .string()
+  .min(1)
+  .refine(isImageRef, { message: "Invalid image URL" });
 
 export const productInputSchema = z.object({
   name: z.string().min(2),
@@ -21,7 +27,7 @@ export const productInputSchema = z.object({
   occasion: z.array(z.string().min(1)).min(1),
   description: z.string().min(8),
   care: z.string().min(2),
-  images: z.array(z.string().url()).min(2),
+  images: z.array(imageRefSchema).min(2),
   sizes: sizesSchema,
   isNew: z.boolean().optional(),
   onSale: z.boolean().optional(),
@@ -82,7 +88,7 @@ export const heroInputSchema = z.object({
   subtitle: z.string().min(2),
   ctaLabel: z.string().min(2),
   ctaHref: z.string().min(1),
-  imageUrl: z.string().url(),
+  imageUrl: imageRefSchema,
   active: z.boolean().optional(),
   sortOrder: z.number().int().optional(),
 });

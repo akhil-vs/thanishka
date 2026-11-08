@@ -2,10 +2,12 @@ export async function adminFetch<T>(
   path: string,
   init?: RequestInit,
 ): Promise<T> {
+  const isFormData =
+    typeof FormData !== "undefined" && init?.body instanceof FormData;
   const res = await fetch(path, {
     ...init,
     headers: {
-      "Content-Type": "application/json",
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...(init?.headers ?? {}),
     },
   });
@@ -17,4 +19,17 @@ export async function adminFetch<T>(
     );
   }
   return data as T;
+}
+
+export async function adminUpload(file: File) {
+  const body = new FormData();
+  body.append("file", file);
+  return adminFetch<{
+    url: string;
+    pathname: string;
+    storage: "blob" | "local";
+  }>("/api/admin/uploads", {
+    method: "POST",
+    body,
+  });
 }

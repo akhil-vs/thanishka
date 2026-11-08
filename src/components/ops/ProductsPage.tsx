@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { ImageUploader } from "@/components/admin/ImageUploader";
 import { Button } from "@/components/ui/Button";
 import { adminFetch } from "@/lib/admin/client";
 import { useAdminResource } from "@/lib/admin/useAdminResource";
@@ -33,8 +34,7 @@ const emptyForm = {
   occasion: "Party",
   description: "New boutique piece from Thanishka.",
   care: "Dry clean recommended.",
-  images:
-    "https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=1200&q=80, https://images.unsplash.com/photo-1566174053879-31528523f8ae?w=1200&q=80",
+  images: [] as string[],
   xs: 0,
   s: 2,
   m: 4,
@@ -57,6 +57,10 @@ export default function ProductsPage() {
     e.preventDefault();
     setError("");
     setMessage("");
+    if (form.images.length < 2) {
+      setError("Upload at least 2 product images.");
+      return;
+    }
     try {
       await adminFetch("/api/admin/products", {
         method: "POST",
@@ -75,10 +79,7 @@ export default function ProductsPage() {
             .filter(Boolean),
           description: form.description,
           care: form.care,
-          images: form.images
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean),
+          images: form.images,
           sizes: {
             XS: Number(form.xs),
             S: Number(form.s),
@@ -175,18 +176,13 @@ export default function ProductsPage() {
             required
           />
         </label>
-        <label className="block text-sm md:col-span-2">
-          <span className="mb-1 block font-display text-[9px] tracking-[0.14em] text-muted">
-            Images (comma URLs, min 2)
-          </span>
-          <textarea
-            value={form.images}
-            onChange={(e) => setForm((f) => ({ ...f, images: e.target.value }))}
-            className="w-full border border-line px-3 py-2"
-            rows={2}
-            required
-          />
-        </label>
+        <ImageUploader
+          label="Product images"
+          hint="Upload at least 2 photos. JPEG, PNG, WebP or GIF · max 4 MB each."
+          values={form.images}
+          onChange={(images) => setForm((f) => ({ ...f, images }))}
+          maxFiles={8}
+        />
         <div className="grid grid-cols-6 gap-2 md:col-span-2">
           {(
             [
