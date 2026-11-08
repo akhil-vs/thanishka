@@ -6,8 +6,6 @@ import {
 } from "@/lib/admin/uploads";
 import { error, json, requireBackoffice } from "@/lib/admin/http";
 
-export const runtime = "nodejs";
-
 export async function POST(request: Request) {
   const { response } = await requireBackoffice();
   if (response) return response;
