@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { adminFetch } from "@/lib/admin/client";
@@ -33,36 +34,47 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-svh max-w-md flex-col justify-center px-4">
-      <p className="font-display text-[11px] tracking-[0.28em] text-kasavu-deep">
-        Thanishka
-      </p>
-      <h1 className="mt-3 font-display text-3xl tracking-[0.14em]">Admin sign in</h1>
-      <p className="mt-3 font-serif text-muted">
-        Manage stock, discounts, offers and hero images.
-      </p>
-      <form onSubmit={onSubmit} className="mt-8 space-y-3">
-        <input
-          name="email"
-          type="email"
-          required
-          defaultValue="admin@thanishka.com"
-          placeholder="Email"
-          className="w-full border border-line bg-ivory px-3 py-2.5 text-sm outline-none focus:border-kasavu"
-        />
-        <input
-          name="password"
-          type="password"
-          required
-          defaultValue="thanishka-admin"
-          placeholder="Password"
-          className="w-full border border-line bg-ivory px-3 py-2.5 text-sm outline-none focus:border-kasavu"
-        />
-        {error ? <p className="text-sm text-sale">{error}</p> : null}
-        <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? "Signing in…" : "Continue"}
-        </Button>
-      </form>
+    <div className="flex min-h-svh bg-charcoal text-ivory">
+      <div className="mx-auto flex w-full max-w-md flex-col justify-center px-4 py-12">
+        <p className="font-display text-[11px] tracking-[0.28em] text-kasavu">
+          Thanishka · Platform
+        </p>
+        <h1 className="mt-3 font-display text-3xl tracking-[0.14em]">
+          Admin sign in
+        </h1>
+        <p className="mt-3 font-serif text-ivory/65">
+          Platform access, boutique settings, and system controls — not daily
+          stock.
+        </p>
+        <form onSubmit={onSubmit} className="mt-8 space-y-3">
+          <input
+            name="email"
+            type="email"
+            required
+            defaultValue="admin@thanishka.com"
+            placeholder="Email"
+            className="w-full border border-ivory/20 bg-ink px-3 py-2.5 text-sm text-ivory outline-none placeholder:text-ivory/40 focus:border-kasavu"
+          />
+          <input
+            name="password"
+            type="password"
+            required
+            defaultValue="thanishka-admin"
+            placeholder="Password"
+            className="w-full border border-ivory/20 bg-ink px-3 py-2.5 text-sm text-ivory outline-none placeholder:text-ivory/40 focus:border-kasavu"
+          />
+          {error ? <p className="text-sm text-sale">{error}</p> : null}
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? "Signing in…" : "Continue to Admin"}
+          </Button>
+        </form>
+        <p className="mt-6 font-serif text-sm text-ivory/55">
+          Running the boutique floor?{" "}
+          <Link href="/studio/login" className="text-kasavu hover:underline">
+            Open Studio
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }

@@ -1,1 +1,1 @@
-export { default } from "../../admin/offers/page";
+export { default } from "@/components/ops/OffersPage";
