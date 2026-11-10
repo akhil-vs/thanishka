@@ -180,8 +180,8 @@ export function Header() {
             <Image
               src="/thanishka-logo.png"
               alt="Thanishka — elegance, tailored to you"
-              width={465}
-              height={320}
+              width={1245}
+              height={526}
               priority
               unoptimized
               className="h-14 w-auto object-contain [filter:drop-shadow(0_1px_1px_rgba(28,27,25,0.25))_drop-shadow(0_3px_6px_rgba(28,27,25,0.28))] md:h-[4.5rem]"
