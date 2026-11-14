@@ -1,6 +1,12 @@
 import { existsSync } from "node:fs";
 import { hashSync } from "bcryptjs";
-import { PrismaClient, Role } from "@prisma/client";
+import {
+  FeedbackStatus,
+  OrderStatus,
+  PaymentMethod,
+  PrismaClient,
+  Role,
+} from "@prisma/client";
 import { products as mockProducts } from "../src/lib/products";
 
 // `npm run db:seed` does not load .env the way `prisma db seed` / migrate do.
@@ -81,9 +87,9 @@ async function ensureDemoCustomer() {
     where: { email },
     include: { roleAssignments: true },
   });
-  if (existing) return;
+  if (existing) return existing;
 
-  await prisma.user.create({
+  const user = await prisma.user.create({
     data: {
       email,
       phone: "+919999000001",
@@ -105,6 +111,109 @@ async function ensureDemoCustomer() {
     },
   });
   console.log(`Seeded demo customer ${email}`);
+  return user;
+}
+
+async function ensureDemoFeedback(customerId: string) {
+  const feedbackCount = await prisma.feedback.count();
+  if (feedbackCount > 0) return;
+
+  const product =
+    (await prisma.product.findFirst({ orderBy: { createdAt: "asc" } })) ??
+    null;
+  if (!product) return;
+
+  const images = Array.isArray(product.images)
+    ? (product.images as string[])
+    : [];
+
+  async function ensureDeliveredOrder(opts: {
+    orderNumber: string;
+    size: string;
+    paymentMethod: PaymentMethod;
+    razorpayPaymentId?: string;
+  }) {
+    const existing = await prisma.order.findUnique({
+      where: { orderNumber: opts.orderNumber },
+    });
+    if (existing) return existing;
+
+    return prisma.order.create({
+      data: {
+        orderNumber: opts.orderNumber,
+        userId: customerId,
+        status: OrderStatus.DELIVERED,
+        paymentMethod: opts.paymentMethod,
+        customerName: "Demo Customer",
+        customerEmail: "customer@thanishka.com",
+        customerPhone: "+919999000001",
+        shippingLine1: "Near Kowdiar Palace",
+        shippingCity: "Thiruvananthapuram",
+        shippingState: "Kerala",
+        shippingPostalCode: "695003",
+        subtotal: product!.price,
+        discountAmount: 0,
+        shippingAmount: 0,
+        total: product!.price,
+        stockReserved: true,
+        paidAt: new Date(),
+        razorpayPaymentId: opts.razorpayPaymentId,
+        items: {
+          create: {
+            productId: product!.id,
+            productName: product!.name,
+            productSlug: product!.slug,
+            productImage: images[0] ?? null,
+            size: opts.size,
+            unitPrice: product!.price,
+            quantity: 1,
+            lineTotal: product!.price,
+          },
+        },
+      },
+    });
+  }
+
+  const publishedOrder = await ensureDeliveredOrder({
+    orderNumber: "TH-SEED-FEEDBACK",
+    size: "M",
+    paymentMethod: PaymentMethod.COD,
+  });
+
+  await prisma.feedback.create({
+    data: {
+      orderId: publishedOrder.id,
+      userId: customerId,
+      rating: 5,
+      message:
+        "The Onam set saree arrived ready to wear — fabric felt premium and the fit was true.",
+      displayName: "Ananya R.",
+      place: "Kowdiar",
+      status: FeedbackStatus.PUBLISHED,
+    },
+  });
+
+  const inboxOrder = await ensureDeliveredOrder({
+    orderNumber: "TH-SEED-FEEDBACK-2",
+    size: "S",
+    paymentMethod: PaymentMethod.RAZORPAY,
+    razorpayPaymentId: "pay_seed_demo",
+  });
+
+  await prisma.feedback.create({
+    data: {
+      orderId: inboxOrder.id,
+      userId: customerId,
+      rating: 4,
+      message:
+        "Soft linen, exact colour as photos. Delivery to Vellayambalam was quick.",
+      displayName: "Demo Customer",
+      place: "Thiruvananthapuram",
+      status: FeedbackStatus.NEW,
+    },
+  });
+
+  console.log("Seeded demo delivered orders + feedback");
 }
 
 async function main() {
@@ -217,7 +326,10 @@ async function main() {
     console.log("Seeded hero slides");
   }
 
-  await ensureDemoCustomer();
+  const customer = await ensureDemoCustomer();
+  if (customer) {
+    await ensureDemoFeedback(customer.id);
+  }
 }
 
 main()

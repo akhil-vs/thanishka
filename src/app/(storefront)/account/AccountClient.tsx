@@ -256,6 +256,14 @@ export function AccountClient({
                       {order.status.replaceAll("_", " ")} ·{" "}
                       {new Date(order.createdAt).toLocaleDateString("en-IN")}
                     </p>
+                    {order.status === "DELIVERED" ? (
+                      <Link
+                        href={`/order/${order.id}`}
+                        className="mt-2 inline-block font-display text-[10px] tracking-[0.14em] text-kasavu-deep underline-offset-2 hover:underline"
+                      >
+                        Share feedback
+                      </Link>
+                    ) : null}
                   </div>
                   <p>{formatINR(order.total)}</p>
                 </li>

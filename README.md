@@ -107,9 +107,10 @@ Identity is a shared `User` model with `RoleAssignment` (`ADMIN`, `SHOP_OWNER`, 
 - `GET/POST /api/admin/offers` · `PATCH/DELETE /api/admin/offers/:id`
 - `GET/POST /api/admin/hero` · `PATCH/DELETE /api/admin/hero/:id`
 - `POST /api/admin/uploads` — multipart image upload for admin/studio
-- Public: `GET /api/hero` · `GET /api/offers`
+- Public: `GET /api/hero` · `GET /api/offers` · `GET /api/feedback/public`
 - Checkout: `POST /api/checkout/quote` · `POST /api/checkout/create` · `POST /api/checkout/verify` · `GET /api/checkout/orders/:id` · `POST /api/checkout/webhook`
 - Orders desk: `GET /api/admin/orders` · `GET/PATCH /api/admin/orders/:id`
+- Feedback: `GET/POST /api/feedback` (order-linked, delivered only) · `GET /api/admin/feedback` · `PATCH /api/admin/feedback/:id`
 - Account: `GET /api/account/orders`
 
 ## Checkout / Razorpay
@@ -125,6 +126,8 @@ Webhook (required in Production): Razorpay → `POST /api/checkout/webhook` for 
 
 Admin / Studio **Orders** desk: list, pack/ship/deliver, cancel (restocks held inventory).
 
+Admin / Studio **Feedback** inbox: moderate order-linked notes from delivered customers; publish quotes to the homepage.
+
 ## Storefront (Phase 1–2)
 
 - Full-bleed hero slider, New In carousel, featured collections
@@ -133,11 +136,12 @@ Admin / Studio **Orders** desk: list, pack/ship/deliver, cancel (restocks held i
 - Product pages, bag, wishlist, guest/account checkout with Razorpay + COD
 - Coupon: `THANISHKA10` (10% off) from the discounts table
 - Order confirmation at `/order/[id]`; signed-in history on `/account`
+- Order-linked feedback after delivery (one note per order; optional homepage publish)
 
 ## Ops jobs
 
-- **Abandoned payment release** — Vercel Cron hits `GET /api/cron/release-pending-orders` every 15 minutes (see `vercel.json`). Cancels `PENDING_PAYMENT` / `PAYMENT_FAILED` orders older than 45 minutes and releases held stock. Set `CRON_SECRET` in Production; Vercel sends `Authorization: Bearer $CRON_SECRET`.
+- **Abandoned payment release** — Vercel Cron hits `GET /api/cron/release-pending-orders` once daily at 04:00 UTC (see `vercel.json`; Hobby plans allow at most one run per day — use a denser schedule on Pro). Cancels `PENDING_PAYMENT` / `PAYMENT_FAILED` orders older than 45 minutes and releases held stock. Set `CRON_SECRET` in Production; Vercel sends `Authorization: Bearer $CRON_SECRET`.
 
 ## Next phases
 
-Shiprocket deep integration, SMS OTP provider, automated GST invoicing PDFs.
+Shiprocket deep integration, SMS OTP provider, automated GST invoicing PDFs, open (non-order) feedback.

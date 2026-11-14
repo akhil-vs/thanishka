@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ButtonLink } from "@/components/ui/Button";
+import { OrderFeedbackForm } from "@/components/feedback/OrderFeedbackForm";
 import { formatINR } from "@/lib/format";
 import { authFetch } from "@/lib/auth/client";
 import type { SerializedOrder } from "@/lib/checkout/types";
@@ -194,6 +195,13 @@ export function OrderConfirmation({
           {order.customerPhone}
         </p>
       </div>
+
+      <OrderFeedbackForm
+        orderId={order.id}
+        orderStatus={order.status}
+        accessToken={accessToken}
+        defaultName={order.customerName}
+      />
 
       <div className="mt-10 flex flex-wrap gap-3">
         <ButtonLink href="/shop">Continue shopping</ButtonLink>
