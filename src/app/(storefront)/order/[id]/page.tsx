@@ -6,8 +6,10 @@ export const instant = false;
 
 export default function OrderPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ t?: string; token?: string }>;
 }) {
   return (
     <Suspense
@@ -17,16 +19,20 @@ export default function OrderPage({
         </div>
       }
     >
-      <OrderPageInner params={params} />
+      <OrderPageInner params={params} searchParams={searchParams} />
     </Suspense>
   );
 }
 
 async function OrderPageInner({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ t?: string; token?: string }>;
 }) {
   const { id } = await params;
-  return <OrderConfirmation orderId={id} />;
+  const query = await searchParams;
+  const accessToken = query.t || query.token || null;
+  return <OrderConfirmation orderId={id} accessToken={accessToken} />;
 }

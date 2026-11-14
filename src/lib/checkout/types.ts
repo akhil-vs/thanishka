@@ -34,5 +34,6 @@ export type SerializedOrder = {
   razorpayPaymentId: string | null;
   paidAt: string | null;
   createdAt: string;
+  stockReserved?: boolean;
   items: SerializedOrderItem[];
 };

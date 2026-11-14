@@ -6,7 +6,7 @@ import { verifyRazorpayWebhookSignature } from "@/lib/razorpay";
 
 /**
  * Razorpay webhook — configure URL as /api/checkout/webhook
- * and enable payment.captured (and optionally order.paid).
+ * and enable payment.captured only (order.paid payload shape differs).
  */
 export async function POST(request: Request) {
   const rawBody = await request.text();
@@ -36,7 +36,8 @@ export async function POST(request: Request) {
   }
 
   const event = payload.event;
-  if (event !== "payment.captured" && event !== "order.paid") {
+  // Only payment.captured — order.paid uses a different entity shape.
+  if (event !== "payment.captured") {
     return json({ received: true, ignored: event ?? null });
   }
 
@@ -62,6 +63,13 @@ export async function POST(request: Request) {
 
   if (order.status === OrderStatus.PAID) {
     return json({ received: true, alreadyPaid: true });
+  }
+
+  if (order.status !== OrderStatus.PENDING_PAYMENT) {
+    return json({
+      received: true,
+      skipped: `status ${order.status}`,
+    });
   }
 
   await markOrderPaid({

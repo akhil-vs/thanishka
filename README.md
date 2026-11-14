@@ -50,9 +50,9 @@ Backend is Next.js Route Handlers on the same Vercel project — no separate API
    - add `DATABASE_URL` yourself with the same Postgres connection string
 5. In Vercel → **Settings → Environment Variables**, also set for Production (+ Preview):
    - `ADMIN_JWT_SECRET` / `STAFF_JWT_SECRET` / `CUSTOMER_JWT_SECRET` — long random secrets
-   - `OTP_DEV_MODE` / `OTP_DEV_CODE` / `OTP_PEPPER` — customer OTP (dev-friendly until SMS is wired)
-   - `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` — Razorpay API keys (test or live)
-   - `RAZORPAY_WEBHOOK_SECRET` — optional; point webhook to `/api/checkout/webhook`
+   - `OTP_DEV_MODE` / `OTP_DEV_CODE` / `OTP_PEPPER` — customer OTP (`OTP_DEV_MODE` must be unset in real Production)
+   - `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` — live keys in Production (`rzp_live_*`; staging may set `ALLOW_RAZORPAY_TEST_KEYS=true`)
+   - `RAZORPAY_WEBHOOK_SECRET` — required in Production; point webhook to `/api/checkout/webhook` (`payment.captured`)
    - `ADMIN_EMAIL` / `ADMIN_PASSWORD` — optional seed overrides
    - `BLOB_READ_WRITE_TOKEN` — from Vercel → Storage → Blob (admin image uploads on Products / Hero)
 6. Redeploy. `vercel.json` runs `scripts/vercel-build.sh`
@@ -109,17 +109,21 @@ Identity is a shared `User` model with `RoleAssignment` (`ADMIN`, `SHOP_OWNER`, 
 - `POST /api/admin/uploads` — multipart image upload for admin/studio
 - Public: `GET /api/hero` · `GET /api/offers`
 - Checkout: `POST /api/checkout/quote` · `POST /api/checkout/create` · `POST /api/checkout/verify` · `GET /api/checkout/orders/:id` · `POST /api/checkout/webhook`
+- Orders desk: `GET /api/admin/orders` · `GET/PATCH /api/admin/orders/:id`
 - Account: `GET /api/account/orders`
 
 ## Checkout / Razorpay
 
 1. Bag stays client-side (Zustand). Checkout posts line items to the server.
 2. Server loads live catalogue prices + stock from Postgres, applies `Discount` coupons, computes shipping (free above ₹1,999), and creates an `Order`.
-3. **Razorpay**: creates a Razorpay Order, opens Checkout.js, then `POST /api/checkout/verify` checks the HMAC signature and marks the order `PAID` (stock decremented).
-4. **COD**: creates `COD_CONFIRMED` immediately and reserves stock.
-5. Without Razorpay keys locally, prepaid uses a **dev complete** path (`RAZORPAY_DEV_MODE` or missing keys outside production). Production requires real keys.
+3. Stock is **held at create** (row-locked) for both Razorpay and COD. Guest confirmation links include an HMAC access token (`?t=`).
+4. **Razorpay**: creates a Razorpay Order, opens Checkout.js, then `POST /api/checkout/verify` checks the HMAC signature and marks the order `PAID`. Bad signatures leave the order `PENDING_PAYMENT` so webhooks can still recover.
+5. **COD**: creates `COD_CONFIRMED` in the same transaction as the stock hold (failure rolls back).
+6. Without Razorpay keys locally, prepaid uses a **dev complete** path (`RAZORPAY_DEV_MODE` or missing keys outside production). `RAZORPAY_DEV_MODE` is **blocked in production**. Production requires live keys + webhook secret.
 
-Webhook (optional): Razorpay → `POST /api/checkout/webhook` for `payment.captured`.
+Webhook (required in Production): Razorpay → `POST /api/checkout/webhook` for `payment.captured` only.
+
+Admin / Studio **Orders** desk: list, pack/ship/deliver, cancel (restocks held inventory).
 
 ## Storefront (Phase 1–2)
 
@@ -132,4 +136,4 @@ Webhook (optional): Razorpay → `POST /api/checkout/webhook` for `payment.captu
 
 ## Next phases
 
-Shiprocket, SMS OTP provider, GST invoicing, admin order desk.
+Shiprocket, SMS OTP provider, GST invoicing, abandoned-payment auto-release job.
