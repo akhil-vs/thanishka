@@ -7,15 +7,27 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Download,
+  FileSpreadsheet,
   Minus,
   PackageX,
   Plus,
+  ScrollText,
   Search,
   Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { adminFetch } from "@/lib/admin/client";
 import { SIZE_KEYS, type SizeKey } from "@/lib/admin/stock";
+import {
+  buildIntakeTemplateCsv,
+  buildInventoryCsv,
+  buildMovementsCsv,
+  downloadCsv,
+  intakeLinesToBulkText,
+  parseBulkTextarea,
+  parseStockCsv,
+} from "@/lib/admin/stock-csv";
 import { useAdminResource } from "@/lib/admin/useAdminResource";
 import { cn, formatINR } from "@/lib/format";
 
@@ -54,12 +66,6 @@ type StockResponse = {
   };
 };
 
-type BulkLine = {
-  productId: string;
-  size: SizeKey;
-  delta: number;
-};
-
 type FilterTab = "all" | "low" | "out" | string;
 
 const PAGE_SIZE = 8;
@@ -96,11 +102,13 @@ export default function AdminStockPage() {
     note: "",
   });
   const [bulkText, setBulkText] = useState(
-    "# productId,size,delta\n# example: clxyz...,M,5",
+    "# productId,size,delta  (or slug,size,delta)\n# Snapshot sync: productId,XS,S,M,L,XL,XXL",
   );
   const [bulkNote, setBulkNote] = useState("Bulk intake");
+  const [bulkPreview, setBulkPreview] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const adjustRef = useRef<HTMLFormElement>(null);
+  const bulkRef = useRef<HTMLFormElement>(null);
 
   const threshold = data?.summary.lowStockThreshold ?? 5;
   const selectedProductId = single.productId || data?.stock[0]?.id || "";
@@ -115,6 +123,16 @@ export default function AdminStockPage() {
     data?.stock.forEach((s) => map.set(s.id, s.name));
     return map;
   }, [data]);
+
+  const productLookup = useMemo(
+    () =>
+      (data?.stock ?? []).map((s) => ({
+        id: s.id,
+        slug: s.slug,
+        name: s.name,
+      })),
+    [data],
+  );
 
   const categories = useMemo(() => {
     const map = new Map<string, string>();
@@ -190,45 +208,34 @@ export default function AdminStockPage() {
     }
   }
 
-  function parseBulk(text: string): BulkLine[] {
-    const lines = text
-      .split("\n")
-      .map((l) => l.trim())
-      .filter((l) => l && !l.startsWith("#"));
-
-    return lines.map((line, index) => {
-      const [productId, sizeRaw, deltaRaw] = line
-        .split(/[,\t ]+/)
-        .map((p) => p.trim());
-      const size = sizeRaw?.toUpperCase() as SizeKey;
-      if (!productId || !SIZE_KEYS.includes(size)) {
-        throw new Error(`Invalid row ${index + 1}: ${line}`);
-      }
-      const delta = Number(deltaRaw);
-      if (!Number.isInteger(delta)) {
-        throw new Error(`Invalid delta on row ${index + 1}`);
-      }
-      return { productId, size, delta };
-    });
-  }
-
   async function submitBulk(e: FormEvent) {
     e.preventDefault();
     setError("");
     setMessage("");
     setBusy(true);
     try {
-      const items = parseBulk(bulkText).map((item) => ({
-        productId: item.productId,
-        size: item.size,
-        mode: "adjust" as const,
-        delta: item.delta,
-      }));
+      const parsed = parseBulkTextarea(bulkText, productLookup);
+      const items = parsed.map((item) =>
+        item.mode === "set"
+          ? {
+              productId: item.productId,
+              size: item.size,
+              mode: "set" as const,
+              quantity: item.quantity,
+            }
+          : {
+              productId: item.productId,
+              size: item.size,
+              mode: "adjust" as const,
+              delta: item.delta,
+            },
+      );
       const res = await adminFetch<{ count: number }>("/api/admin/stock/bulk", {
         method: "POST",
         body: JSON.stringify({ note: bulkNote, items }),
       });
       setMessage(`Bulk applied to ${res.count} size rows.`);
+      setBulkPreview("");
       reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Bulk failed");
@@ -237,13 +244,39 @@ export default function AdminStockPage() {
     }
   }
 
+  function applyImportedCsv(text: string, filename?: string) {
+    const { lines, format } = parseStockCsv(text, productLookup);
+    setBulkText(intakeLinesToBulkText(lines));
+    setBulkPreview(
+      `${lines.length} ${format} row${lines.length === 1 ? "" : "s"} ready`,
+    );
+    if (filename) {
+      const stamp = new Date().toISOString().slice(0, 10);
+      setBulkNote(`CSV import · ${filename} · ${stamp}`);
+    }
+    setMessage(
+      `Loaded ${lines.length} ${format} change${lines.length === 1 ? "" : "s"}${
+        filename ? ` from ${filename}` : ""
+      }. Review and execute bulk intake.`,
+    );
+    bulkRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   function onCsvFile(file: File | null) {
     if (!file) return;
+    if (!productLookup.length) {
+      setError("Stock catalog is still loading.");
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => {
-      const text = String(reader.result ?? "");
-      setBulkText(text.trim() || bulkText);
-      setMessage(`Loaded ${file.name}`);
+      try {
+        setError("");
+        applyImportedCsv(String(reader.result ?? ""), file.name);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Could not parse CSV");
+        setBulkPreview("");
+      }
     };
     reader.onerror = () => setError("Could not read file");
     reader.readAsText(file);
@@ -276,6 +309,59 @@ export default function AdminStockPage() {
   const rangeEnd = Math.min(safePage * PAGE_SIZE, filtered.length);
   const maxTotal = Math.max(...filtered.map((r) => r.total), 1);
 
+  function exportInventoryCsv() {
+    const rows = filtered.map((row) => ({
+      id: row.id,
+      name: row.name,
+      slug: row.slug,
+      category: row.category,
+      active: row.active,
+      sizes: row.sizes,
+      total: row.total,
+      status: statusLabel(stockStatus(row.total, threshold)),
+    }));
+    const stamp = new Date().toISOString().slice(0, 10);
+    downloadCsv(
+      `thanishka-stock-${filter}-${stamp}.csv`,
+      buildInventoryCsv(rows),
+    );
+    setMessage(
+      `Exported ${rows.length} style${rows.length === 1 ? "" : "s"} to CSV.`,
+    );
+  }
+
+  function exportAuditCsv() {
+    if (!data) return;
+    const stamp = new Date().toISOString().slice(0, 10);
+    downloadCsv(
+      `thanishka-stock-movements-${stamp}.csv`,
+      buildMovementsCsv(
+        data.movements.map((m) => ({
+          ...m,
+          productName: nameById.get(m.productId) ?? m.productId,
+        })),
+      ),
+    );
+    setMessage(
+      `Exported ${data.movements.length} movement${
+        data.movements.length === 1 ? "" : "s"
+      } to CSV.`,
+    );
+  }
+
+  function downloadTemplate() {
+    const sample = data?.stock[0];
+    downloadCsv(
+      "thanishka-stock-intake-template.csv",
+      buildIntakeTemplateCsv(
+        sample
+          ? { productId: sample.slug, size: "M", delta: 5 }
+          : undefined,
+      ),
+    );
+    setMessage("Downloaded intake CSV template.");
+  }
+
   return (
     <div>
       <header className="flex flex-col gap-4 border-b border-line pb-6 lg:flex-row lg:items-end lg:justify-between">
@@ -294,9 +380,29 @@ export default function AdminStockPage() {
             variant="secondary"
             className="px-4 py-2.5"
             onClick={() => fileRef.current?.click()}
+            disabled={!data}
           >
             <Upload className="h-3.5 w-3.5" />
             Import CSV
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            className="px-4 py-2.5"
+            onClick={exportInventoryCsv}
+            disabled={!data}
+          >
+            <Download className="h-3.5 w-3.5" />
+            Export CSV
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            className="px-4 py-2.5"
+            onClick={downloadTemplate}
+          >
+            <FileSpreadsheet className="h-3.5 w-3.5" />
+            Template
           </Button>
           <Button
             type="button"
@@ -308,9 +414,20 @@ export default function AdminStockPage() {
                 ?.scrollIntoView({ behavior: "smooth" })
             }
           >
+            <ScrollText className="h-3.5 w-3.5" />
             Audit log
           </Button>
         </div>
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".csv,.txt,text/csv,text/plain"
+          className="hidden"
+          onChange={(e) => {
+            onCsvFile(e.target.files?.[0] ?? null);
+            e.target.value = "";
+          }}
+        />
       </header>
 
       {error ? <p className="mt-4 text-sm text-sale">{error}</p> : null}
@@ -509,6 +626,7 @@ export default function AdminStockPage() {
         </form>
 
         <form
+          ref={bulkRef}
           onSubmit={submitBulk}
           className="flex flex-col border border-line bg-ivory"
         >
@@ -517,7 +635,8 @@ export default function AdminStockPage() {
               Bulk warehouse intake
             </h2>
             <p className="mt-1 text-xs text-muted">
-              One row per size: <code>productId,size,delta</code>
+              Intake: <code>productId|slug,size,delta</code>. Snapshot:{" "}
+              <code>productId,XS,S,M,L,XL,XXL</code>.
             </p>
           </div>
 
@@ -528,12 +647,19 @@ export default function AdminStockPage() {
               </span>
               <textarea
                 value={bulkText}
-                onChange={(e) => setBulkText(e.target.value)}
+                onChange={(e) => {
+                  setBulkText(e.target.value);
+                  setBulkPreview("");
+                }}
                 rows={10}
                 spellCheck={false}
                 className="w-full border border-line bg-mist/40 px-3 py-2 font-mono text-xs leading-relaxed"
               />
             </label>
+
+            {bulkPreview ? (
+              <p className="text-xs text-emerald">{bulkPreview}</p>
+            ) : null}
 
             <label className="block text-sm">
               <span className="mb-1.5 block font-display text-[9px] tracking-[0.14em] text-muted">
@@ -547,28 +673,23 @@ export default function AdminStockPage() {
               />
             </label>
 
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".csv,.txt,text/csv,text/plain"
-              className="hidden"
-              onChange={(e) => {
-                onCsvFile(e.target.files?.[0] ?? null);
-                e.target.value = "";
-              }}
-            />
-
             <div className="mt-auto flex flex-col gap-2 sm:flex-row">
               <Button
                 type="button"
                 variant="secondary"
                 className="flex-1"
                 onClick={() => fileRef.current?.click()}
+                disabled={!data || busy}
               >
                 <ArrowDownToLine className="h-3.5 w-3.5" />
                 Attach CSV
               </Button>
-              <Button type="submit" variant="gold" className="flex-1" disabled={busy}>
+              <Button
+                type="submit"
+                variant="gold"
+                className="flex-1"
+                disabled={busy || !data}
+              >
                 Execute bulk intake
               </Button>
             </div>
@@ -584,20 +705,32 @@ export default function AdminStockPage() {
             </h2>
             <p className="mt-1 text-xs text-muted">
               Size cells ≤ {SIZE_ALERT} are highlighted. Click + to adjust.
+              Export uses the current filter.
             </p>
           </div>
-          <label className="relative block w-full lg:max-w-xs">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted" />
-            <input
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setPage(1);
-              }}
-              placeholder="Filter by name, ID or size…"
-              className="w-full border border-line bg-transparent py-2.5 pl-9 pr-3 text-sm"
-            />
-          </label>
+          <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center lg:max-w-xl">
+            <label className="relative block min-w-0 flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted" />
+              <input
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="Filter by name, ID or size…"
+                className="w-full border border-line bg-transparent py-2.5 pl-9 pr-3 text-sm"
+              />
+            </label>
+            <Button
+              type="button"
+              variant="secondary"
+              className="shrink-0 px-4 py-2.5"
+              onClick={exportInventoryCsv}
+            >
+              <Download className="h-3.5 w-3.5" />
+              Export view
+            </Button>
+          </div>
         </div>
 
         <div className="flex gap-2 overflow-x-auto border-b border-line px-5 py-3">
@@ -796,13 +929,25 @@ export default function AdminStockPage() {
         id="stock-audit-log"
         className="mt-8 border border-line bg-ivory"
       >
-        <div className="border-b border-line px-5 py-4">
-          <h2 className="font-display text-[11px] tracking-[0.16em]">
-            Movement audit log
-          </h2>
-          <p className="mt-1 text-xs text-muted">
-            Latest {data?.movements.length ?? 0} stock changes across sources.
-          </p>
+        <div className="flex flex-col gap-3 border-b border-line px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="font-display text-[11px] tracking-[0.16em]">
+              Movement audit log
+            </h2>
+            <p className="mt-1 text-xs text-muted">
+              Latest {data?.movements.length ?? 0} stock changes across sources.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="secondary"
+            className="px-4 py-2.5"
+            onClick={exportAuditCsv}
+            disabled={!data?.movements.length}
+          >
+            <Download className="h-3.5 w-3.5" />
+            Export log CSV
+          </Button>
         </div>
         <ul className="divide-y divide-line">
           {(data?.movements.length ?? 0) === 0 ? (
