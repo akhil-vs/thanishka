@@ -12,17 +12,24 @@ function hashOtp(phone: string, code: string) {
 }
 
 function generateCode() {
-  const fixed = process.env.OTP_DEV_CODE?.trim();
-  if (fixed && /^\d{4,6}$/.test(fixed)) return fixed;
+  // Fixed codes only when explicitly in OTP dev mode (never by env presence alone).
+  if (isOtpDevMode()) {
+    const fixed = process.env.OTP_DEV_CODE?.trim();
+    if (fixed && /^\d{4,6}$/.test(fixed)) return fixed;
+  }
   return String(randomInt(100000, 999999));
 }
 
+/**
+ * Dev OTP (log + return `devCode`) is never enabled by OTP_DEV_CODE alone.
+ * Production requires an explicit OTP_DEV_MODE=true (staging only).
+ * Non-production defaults to on so local checkout works without SMS.
+ */
 export function isOtpDevMode() {
-  return (
-    process.env.OTP_DEV_MODE === "true" ||
-    process.env.NODE_ENV !== "production" ||
-    Boolean(process.env.OTP_DEV_CODE)
-  );
+  if (process.env.NODE_ENV === "production") {
+    return process.env.OTP_DEV_MODE === "true";
+  }
+  return process.env.OTP_DEV_MODE !== "false";
 }
 
 export async function requestOtp(rawPhone: string) {

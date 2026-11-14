@@ -1,8 +1,11 @@
 import { prisma } from "@/lib/db";
 import { asSizeMap, type SizeMap } from "@/lib/admin/types";
+import type { Prisma } from "@prisma/client";
 
 export const SIZE_KEYS = ["XS", "S", "M", "L", "XL", "XXL"] as const;
 export type SizeKey = (typeof SIZE_KEYS)[number];
+
+type Tx = Prisma.TransactionClient;
 
 export async function applyStockChange(opts: {
   productId: string;
@@ -13,42 +16,47 @@ export async function applyStockChange(opts: {
   note?: string;
   source?: string;
   userId?: string | null;
+  /** Optional interactive transaction client for atomic checkout holds. */
+  tx?: Tx;
 }) {
-  const product = await prisma.product.findUnique({
-    where: { id: opts.productId },
-  });
+  const run = async (client: Tx) => {
+    // Row lock so concurrent checkout/admin adjusts cannot oversell.
+    await client.$queryRaw`SELECT id FROM products WHERE id = ${opts.productId} FOR UPDATE`;
 
-  if (!product) {
-    throw new Error(`Product ${opts.productId} not found`);
-  }
+    const product = await client.product.findUnique({
+      where: { id: opts.productId },
+    });
 
-  const sizes = asSizeMap(product.sizes);
-  const current = sizes[opts.size] ?? 0;
+    if (!product) {
+      throw new Error(`Product ${opts.productId} not found`);
+    }
 
-  let next = current;
-  if (opts.mode === "set") {
-    if (opts.quantity == null) throw new Error("quantity required for set mode");
-    next = opts.quantity;
-  } else {
-    if (opts.delta == null) throw new Error("delta required for adjust mode");
-    next = current + opts.delta;
-  }
+    const sizes = asSizeMap(product.sizes);
+    const current = sizes[opts.size] ?? 0;
 
-  if (next < 0) {
-    throw new Error(
-      `Stock for ${product.name} / ${opts.size} cannot go below 0`,
-    );
-  }
+    let next = current;
+    if (opts.mode === "set") {
+      if (opts.quantity == null) throw new Error("quantity required for set mode");
+      next = opts.quantity;
+    } else {
+      if (opts.delta == null) throw new Error("delta required for adjust mode");
+      next = current + opts.delta;
+    }
 
-  const delta = next - current;
-  sizes[opts.size] = next;
+    if (next < 0) {
+      throw new Error(
+        `Stock for ${product.name} / ${opts.size} cannot go below 0`,
+      );
+    }
 
-  await prisma.$transaction([
-    prisma.product.update({
+    const delta = next - current;
+    sizes[opts.size] = next;
+
+    await client.product.update({
       where: { id: product.id },
       data: { sizes },
-    }),
-    prisma.stockMovement.create({
+    });
+    await client.stockMovement.create({
       data: {
         productId: product.id,
         size: opts.size,
@@ -58,16 +66,22 @@ export async function applyStockChange(opts: {
         source: opts.source ?? "manual",
         userId: opts.userId ?? null,
       },
-    }),
-  ]);
+    });
 
-  return {
-    productId: product.id,
-    size: opts.size,
-    previous: current,
-    quantity: next,
-    delta,
+    return {
+      productId: product.id,
+      size: opts.size,
+      previous: current,
+      quantity: next,
+      delta,
+    };
   };
+
+  if (opts.tx) {
+    return run(opts.tx);
+  }
+
+  return prisma.$transaction((tx) => run(tx));
 }
 
 export function totalUnits(sizes: SizeMap | Record<string, number>) {

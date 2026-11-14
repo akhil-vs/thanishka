@@ -28,6 +28,7 @@ type CreateResult =
       currency: string;
       keyId: string;
       razorpayOrderId: string;
+      accessToken: string;
     }
   | {
       mode: "dev";
@@ -36,10 +37,12 @@ type CreateResult =
       currency: string;
       keyId: string | null;
       razorpayOrderId: string | null;
+      accessToken: string;
     }
   | {
       mode: "cod";
       order: SerializedOrder;
+      accessToken: string;
     };
 
 type Address = {
@@ -178,17 +181,25 @@ export function CheckoutForm({ items }: { items: CartItem[] }) {
     }
   }
 
-  async function finishSuccess(order: SerializedOrder) {
+  async function finishSuccess(order: SerializedOrder, accessToken: string) {
     clear();
-    router.push(`/order/${order.id}`);
+    try {
+      sessionStorage.setItem(`thanishka_order_t_${order.id}`, accessToken);
+    } catch {
+      /* ignore private mode */
+    }
+    router.push(`/order/${order.id}?t=${encodeURIComponent(accessToken)}`);
   }
 
-  async function verifyRazorpay(opts: {
-    orderId: string;
-    razorpayOrderId: string;
-    razorpayPaymentId: string;
-    razorpaySignature: string;
-  }) {
+  async function verifyRazorpay(
+    opts: {
+      orderId: string;
+      razorpayOrderId: string;
+      razorpayPaymentId: string;
+      razorpaySignature: string;
+    },
+    accessToken: string,
+  ) {
     const data = await authFetch<{ order: SerializedOrder }>(
       "/api/checkout/verify",
       {
@@ -196,7 +207,7 @@ export function CheckoutForm({ items }: { items: CartItem[] }) {
         body: JSON.stringify(opts),
       },
     );
-    await finishSuccess(data.order);
+    await finishSuccess(data.order, accessToken);
   }
 
   async function onSubmit(e: FormEvent) {
@@ -228,7 +239,7 @@ export function CheckoutForm({ items }: { items: CartItem[] }) {
       });
 
       if (created.mode === "cod") {
-        await finishSuccess(created.order);
+        await finishSuccess(created.order, created.accessToken);
         return;
       }
 
@@ -243,7 +254,7 @@ export function CheckoutForm({ items }: { items: CartItem[] }) {
             }),
           },
         );
-        await finishSuccess(data.order);
+        await finishSuccess(data.order, created.accessToken);
         return;
       }
 
@@ -258,12 +269,15 @@ export function CheckoutForm({ items }: { items: CartItem[] }) {
         customerPhone: phone,
         onSuccess: async (res) => {
           try {
-            await verifyRazorpay({
-              orderId: created.order.id,
-              razorpayOrderId: res.razorpay_order_id,
-              razorpayPaymentId: res.razorpay_payment_id,
-              razorpaySignature: res.razorpay_signature,
-            });
+            await verifyRazorpay(
+              {
+                orderId: created.order.id,
+                razorpayOrderId: res.razorpay_order_id,
+                razorpayPaymentId: res.razorpay_payment_id,
+                razorpaySignature: res.razorpay_signature,
+              },
+              created.accessToken,
+            );
           } catch (err) {
             setError(
               err instanceof Error

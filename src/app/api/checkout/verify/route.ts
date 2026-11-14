@@ -30,6 +30,10 @@ export async function POST(request: Request) {
       return json({ order: serializeOrder(order), alreadyPaid: true });
     }
 
+    if (order.status !== OrderStatus.PENDING_PAYMENT) {
+      return error(`Order cannot be paid (status: ${order.status})`, 400);
+    }
+
     if (body.devComplete) {
       if (!isRazorpayDevMode()) {
         return error("Dev checkout is disabled", 403);
@@ -62,10 +66,10 @@ export async function POST(request: Request) {
       signature: razorpaySignature,
     });
     if (!ok) {
-      await prisma.order.update({
-        where: { id: order.id },
-        data: { status: OrderStatus.PAYMENT_FAILED },
-      });
+      // Keep PENDING_PAYMENT so a later correct verify or webhook can still mark PAID.
+      console.warn(
+        `[checkout/verify] signature failed for order ${order.id}; leaving PENDING_PAYMENT`,
+      );
       return error("Payment signature verification failed", 400);
     }
 

@@ -1,17 +1,22 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { jwtVerify } from "jose";
+import { requireAuthSecret } from "@/lib/auth/secrets";
 
 const ADMIN_COOKIE = "thanishka_admin_session";
 const STAFF_COOKIE = "thanishka_staff_session";
 
 function secretFor(kind: "admin" | "staff") {
-  const secret =
-    kind === "admin"
-      ? (process.env.ADMIN_JWT_SECRET ?? "thanishka-dev-admin-secret-change-me")
-      : (process.env.STAFF_JWT_SECRET ??
-        process.env.ADMIN_JWT_SECRET ??
-        "thanishka-dev-admin-secret-change-me");
-  return new TextEncoder().encode(secret);
+  if (kind === "admin") {
+    return new TextEncoder().encode(
+      requireAuthSecret(process.env.ADMIN_JWT_SECRET, "ADMIN_JWT_SECRET"),
+    );
+  }
+  return new TextEncoder().encode(
+    requireAuthSecret(
+      process.env.STAFF_JWT_SECRET ?? process.env.ADMIN_JWT_SECRET,
+      "STAFF_JWT_SECRET",
+    ),
+  );
 }
 
 async function hasValidToken(

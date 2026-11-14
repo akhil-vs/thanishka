@@ -10,17 +10,38 @@ export function getRazorpayConfig() {
   const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET?.trim() || "";
   const forceDev = process.env.RAZORPAY_DEV_MODE === "true";
   const hasKeys = Boolean(keyId && keySecret);
+  const isProd = process.env.NODE_ENV === "production";
+  const allowTestKeys = process.env.ALLOW_RAZORPAY_TEST_KEYS === "true";
+
+  if (forceDev && isProd) {
+    throw new Error(
+      "RAZORPAY_DEV_MODE is not allowed in production — unset it and use live keys",
+    );
+  }
 
   let mode: RazorpayMode = "live";
   if (forceDev) {
     mode = "dev";
   } else if (!hasKeys) {
-    if (process.env.NODE_ENV === "production") {
+    if (isProd) {
       throw new Error(
         "RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET are required in production",
       );
     }
     mode = "dev";
+  }
+
+  if (mode === "live" && isProd) {
+    if (keyId.startsWith("rzp_test_") && !allowTestKeys) {
+      throw new Error(
+        "Live Razorpay keys (rzp_live_*) are required in production. Set ALLOW_RAZORPAY_TEST_KEYS=true only for staging.",
+      );
+    }
+    if (!webhookSecret) {
+      throw new Error(
+        "RAZORPAY_WEBHOOK_SECRET is required in production for payment.captured recovery",
+      );
+    }
   }
 
   return { keyId, keySecret, webhookSecret, mode, hasKeys };
@@ -53,7 +74,7 @@ export function verifyRazorpayWebhookSignature(
   signature: string,
 ) {
   const { webhookSecret } = getRazorpayConfig();
-  if (!webhookSecret) return false;
+  if (!webhookSecret || !signature) return false;
   const expected = crypto
     .createHmac("sha256", webhookSecret)
     .update(rawBody)

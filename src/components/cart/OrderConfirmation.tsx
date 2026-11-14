@@ -31,7 +31,13 @@ function statusLabel(status: string) {
   }
 }
 
-export function OrderConfirmation({ orderId }: { orderId: string }) {
+export function OrderConfirmation({
+  orderId,
+  accessToken,
+}: {
+  orderId: string;
+  accessToken?: string | null;
+}) {
   const [order, setOrder] = useState<SerializedOrder | null>(null);
   const [error, setError] = useState("");
 
@@ -39,8 +45,17 @@ export function OrderConfirmation({ orderId }: { orderId: string }) {
     let cancelled = false;
     (async () => {
       try {
+        let token = accessToken ?? null;
+        if (!token) {
+          try {
+            token = sessionStorage.getItem(`thanishka_order_t_${orderId}`);
+          } catch {
+            token = null;
+          }
+        }
+        const qs = token ? `?t=${encodeURIComponent(token)}` : "";
         const data = await authFetch<{ order: SerializedOrder }>(
-          `/api/checkout/orders/${orderId}`,
+          `/api/checkout/orders/${orderId}${qs}`,
         );
         if (!cancelled) setOrder(data.order);
       } catch (err) {
@@ -52,7 +67,7 @@ export function OrderConfirmation({ orderId }: { orderId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [orderId]);
+  }, [orderId, accessToken]);
 
   if (error) {
     return (
