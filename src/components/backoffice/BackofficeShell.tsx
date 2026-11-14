@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   BadgePercent,
+  BarChart3,
   ClipboardList,
   ImageIcon,
   LayoutDashboard,
@@ -18,6 +19,7 @@ import { authFetch } from "@/lib/auth/client";
 
 const SECTIONS = [
   { path: "", label: "Dashboard", icon: LayoutDashboard },
+  { path: "/analytics", label: "Analytics", icon: BarChart3 },
   { path: "/orders", label: "Orders", icon: ClipboardList },
   { path: "/feedback", label: "Feedback", icon: MessageSquareQuote },
   { path: "/stock", label: "Stock", icon: Warehouse },
