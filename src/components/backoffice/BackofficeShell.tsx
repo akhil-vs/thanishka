@@ -8,6 +8,7 @@ import {
   ImageIcon,
   LayoutDashboard,
   LogOut,
+  MessageSquareQuote,
   Package,
   Sparkles,
   Warehouse,
@@ -18,6 +19,7 @@ import { authFetch } from "@/lib/auth/client";
 const SECTIONS = [
   { path: "", label: "Dashboard", icon: LayoutDashboard },
   { path: "/orders", label: "Orders", icon: ClipboardList },
+  { path: "/feedback", label: "Feedback", icon: MessageSquareQuote },
   { path: "/stock", label: "Stock", icon: Warehouse },
   { path: "/products", label: "Products", icon: Package },
   { path: "/discounts", label: "Discounts", icon: BadgePercent },
