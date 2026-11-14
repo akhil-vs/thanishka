@@ -92,6 +92,7 @@ Identity is a shared `User` model with `RoleAssignment` (`ADMIN`, `SHOP_OWNER`, 
 | **Offers** | Manage promotional banners (feeds homepage offer) |
 | **Hero images** | Manage homepage slider slides (feeds `/api/hero`) — file upload |
 | **Dashboard** | Units, low stock, recent movements, campaign counts |
+| **Analytics** | IST date-range GMV/orders trend, payment mix, bestsellers, cities, coupons, feedback & newsletter |
 | **Uploads** | `POST /api/admin/uploads` — JPEG/PNG/WebP/GIF (max 4 MB); Vercel Blob in production, `public/uploads` locally |
 
 ### Key API routes
@@ -110,6 +111,7 @@ Identity is a shared `User` model with `RoleAssignment` (`ADMIN`, `SHOP_OWNER`, 
 - Public: `GET /api/hero` · `GET /api/offers` · `GET /api/feedback/public`
 - Checkout: `POST /api/checkout/quote` · `POST /api/checkout/create` · `POST /api/checkout/verify` · `GET /api/checkout/orders/:id` · `POST /api/checkout/webhook`
 - Orders desk: `GET /api/admin/orders` · `GET/PATCH /api/admin/orders/:id`
+- Analytics: `GET /api/admin/analytics?from=&to=&compare=1` (IST day buckets)
 - Feedback: `GET/POST /api/feedback` (order-linked, delivered only) · `GET /api/admin/feedback` · `PATCH /api/admin/feedback/:id`
 - Account: `GET /api/account/orders`
 
