@@ -17,13 +17,22 @@ if (existsSync(".env") && typeof process.loadEnvFile === "function") {
 const prisma = new PrismaClient();
 
 async function ensureShop() {
+  const phone = process.env.STORE_PHONE?.trim() || null;
+  const whatsapp = process.env.STORE_WHATSAPP?.trim() || phone;
   return prisma.shop.upsert({
     where: { slug: "thanishka" },
-    update: { name: "Thanishka", active: true },
+    update: {
+      name: "Thanishka",
+      active: true,
+      ...(phone ? { phone } : {}),
+      ...(whatsapp ? { whatsapp } : {}),
+    },
     create: {
       id: "shop_thanishka_default",
       slug: "thanishka",
       name: "Thanishka",
+      phone,
+      whatsapp,
       active: true,
     },
   });
@@ -246,10 +255,16 @@ async function main() {
         label: "Welcome 10% off",
         type: "percent",
         value: 10,
+        firstOrderOnly: true,
         active: true,
       },
     });
     console.log("Seeded discount THANISHKA10");
+  } else {
+    await prisma.discount.updateMany({
+      where: { code: "THANISHKA10", firstOrderOnly: false },
+      data: { firstOrderOnly: true },
+    });
   }
 
   const offerCount = await prisma.offer.count();

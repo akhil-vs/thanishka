@@ -2,12 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { SubscribeForm } from "@/components/home/SubscribeForm";
 
 export function SubscribePopup() {
   const [open, setOpen] = useState(false);
-  const [email, setEmail] = useState("");
-  const [done, setDone] = useState(false);
 
   useEffect(() => {
     const dismissed = localStorage.getItem("thanishka-sub-dismissed");
@@ -40,32 +38,7 @@ export function SubscribePopup() {
         <p className="mt-3 font-serif text-muted">
           Join the list for new arrivals, Onam edits, and private sale invites.
         </p>
-        {done ? (
-          <p className="mt-6 text-sm text-emerald">
-            Code THANISHKA10 is ready — enjoy shopping.
-          </p>
-        ) : (
-          <form
-            className="mt-6 flex flex-col gap-3"
-            onSubmit={(e) => {
-              e.preventDefault();
-              setDone(true);
-              localStorage.setItem("thanishka-sub-dismissed", "1");
-            }}
-          >
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email address"
-              className="border border-charcoal/20 px-4 py-3 text-sm outline-none focus:border-kasavu"
-            />
-            <Button type="submit" variant="gold">
-              Get my code
-            </Button>
-          </form>
-        )}
+        <SubscribeForm source="popup" variant="popup" />
       </div>
     </div>
   );

@@ -1,8 +1,14 @@
 "use client";
 
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { categories, filterProducts, type Size } from "@/lib/products";
+import { Search } from "lucide-react";
+import {
+  categories,
+  filterProductList,
+  type Product,
+  type Size,
+} from "@/lib/products";
 import { ProductCard } from "@/components/product/ProductCard";
 import { cn } from "@/lib/format";
 
@@ -10,20 +16,45 @@ const sizes: Size[] = ["XS", "S", "M", "L", "XL", "XXL"];
 const occasions = ["Onam", "Vishu", "Eid", "Christmas", "Party", "Day"];
 const PAGE_SIZE = 8;
 
-export function ShopClient() {
+export function ShopClient({ products: catalog }: { products: Product[] }) {
   const params = useSearchParams();
   const router = useRouter();
   const category = params.get("category") ?? "all";
   const size = params.get("size") ?? "";
   const occasion = params.get("occasion") ?? "";
+  const color = params.get("color") ?? "";
+  const q = params.get("q") ?? "";
   const sort = params.get("sort") ?? "featured";
   const pageFromUrl = Number.parseInt(params.get("page") ?? "1", 10);
   const [openFilters, setOpenFilters] = useState(false);
+  const [searchDraft, setSearchDraft] = useState(q);
   const resultsRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (params.get("focus") !== "search") return;
+    searchInputRef.current?.focus();
+  }, [params]);
+
+  const colorOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of catalog) {
+      for (const c of p.colors) set.add(c);
+    }
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [catalog]);
 
   const products = useMemo(
-    () => filterProducts({ category, size, occasion, sort }),
-    [category, size, occasion, sort],
+    () =>
+      filterProductList(catalog, {
+        category,
+        size,
+        occasion,
+        color,
+        q,
+        sort,
+      }),
+    [catalog, category, size, occasion, color, q, sort],
   );
 
   const totalPages = Math.max(1, Math.ceil(products.length / PAGE_SIZE));
@@ -50,6 +81,10 @@ export function ShopClient() {
     else next.set("page", String(page));
     router.push(`/shop?${next.toString()}`, { scroll: false });
     resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const submitSearch = (value: string) => {
+    setParam("q", value.trim());
   };
 
   return (
@@ -87,6 +122,51 @@ export function ShopClient() {
         </div>
       </div>
 
+      <form
+        className="mb-8 flex gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          submitSearch(searchDraft);
+        }}
+      >
+        <label className="sr-only" htmlFor="shop-search">
+          Search dresses
+        </label>
+        <div className="relative flex-1">
+          <Search
+            size={16}
+            strokeWidth={1.5}
+            className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted"
+          />
+          <input
+            id="shop-search"
+            ref={searchInputRef}
+            value={searchDraft}
+            onChange={(e) => setSearchDraft(e.target.value)}
+            placeholder="Search by name, fabric, colour, occasion…"
+            className="w-full border border-line bg-transparent py-2.5 pr-3 pl-10 text-sm outline-none focus:border-kasavu"
+          />
+        </div>
+        <button
+          type="submit"
+          className="border border-charcoal bg-charcoal px-4 py-2 font-display text-[10px] tracking-[0.16em] text-ivory"
+        >
+          Search
+        </button>
+        {q ? (
+          <button
+            type="button"
+            className="border border-line px-4 py-2 font-display text-[10px] tracking-[0.16em] text-muted"
+            onClick={() => {
+              setSearchDraft("");
+              setParam("q", "");
+            }}
+          >
+            Clear
+          </button>
+        ) : null}
+      </form>
+
       <div className="grid items-start gap-8 md:grid-cols-[220px_1fr]">
         <aside
           className={cn(
@@ -122,6 +202,22 @@ export function ShopClient() {
                 active={size === s}
                 onClick={() => setParam("size", s)}
                 label={s}
+              />
+            ))}
+          </FilterGroup>
+
+          <FilterGroup title="Colour">
+            <FilterChip
+              active={!color}
+              onClick={() => setParam("color", "")}
+              label="Any"
+            />
+            {colorOptions.map((c) => (
+              <FilterChip
+                key={c}
+                active={color.toLowerCase() === c.toLowerCase()}
+                onClick={() => setParam("color", c)}
+                label={c}
               />
             ))}
           </FilterGroup>

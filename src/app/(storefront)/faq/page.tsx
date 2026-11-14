@@ -11,11 +11,11 @@ const faqs = [
   },
   {
     q: "How do I know my size?",
-    a: "Use the size chart on each product page. If you are between sizes, chat with us on WhatsApp with your bust/waist/hip.",
+    a: "Open the size chart on each product — charts differ for kurtis, gowns, co-ords, and set-sarees. Between sizes? Prefer the larger bust, or WhatsApp us your bust/waist/hip.",
   },
   {
     q: "What payment methods do you accept?",
-    a: "UPI, cards, net banking and cash on delivery via our payment partners. GST invoices are issued with every order.",
+    a: "UPI, cards, net banking and cash on delivery via our payment partners. A payment receipt is included with every order; ask us on WhatsApp if you need a GST tax invoice.",
   },
   {
     q: "How long does shipping take?",

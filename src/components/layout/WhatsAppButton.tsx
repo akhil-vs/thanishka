@@ -1,12 +1,47 @@
 "use client";
 
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import type { StoreContact } from "@/lib/store-contact";
+
 export function WhatsAppButton() {
+  const pathname = usePathname();
+  const [href, setHref] = useState<string | null>(null);
+  const onProduct = pathname.startsWith("/product/");
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/store")
+      .then((res) => res.json())
+      .then((data: { contact?: StoreContact }) => {
+        if (cancelled) return;
+        const wa = data.contact?.whatsapp;
+        if (!wa) {
+          setHref(null);
+          return;
+        }
+        setHref(
+          `https://wa.me/${wa}?text=${encodeURIComponent("Hi Thanishka, I have a question")}`,
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setHref(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (!href) return null;
+
   return (
     <a
-      href="https://wa.me/919876543210?text=Hi%20Thanishka%2C%20I%20have%20a%20question"
+      href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="fixed right-4 bottom-20 z-30 flex h-12 w-12 items-center justify-center rounded-full bg-emerald text-ivory shadow-lg transition hover:scale-105 md:bottom-6"
+      className={`fixed right-4 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-emerald text-ivory transition hover:scale-105 md:bottom-6 ${
+        onProduct ? "bottom-32" : "bottom-20"
+      }`}
       aria-label="Chat on WhatsApp"
     >
       <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current" aria-hidden>

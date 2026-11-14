@@ -8,6 +8,8 @@ import { prisma } from "@/lib/db";
 import { asSizeMap, asStringArray } from "@/lib/admin/types";
 import { applyStockChange, type SizeKey } from "@/lib/admin/stock";
 import { normalizePhone } from "@/lib/auth/phone";
+import { revalidateCatalog } from "@/lib/catalog-revalidate";
+import { PENDING_PAYMENT_HOLD_MINUTES } from "@/lib/checkout/constants";
 import {
   computeOrderTotals,
   type PricedLine,
@@ -16,6 +18,20 @@ import {
 import { createOrderAccessToken } from "@/lib/checkout/access-token";
 import type { SerializedOrder } from "@/lib/checkout/types";
 import { getRazorpayClient, getRazorpayConfig } from "@/lib/razorpay";
+
+const COMPLETED_ORDER_STATUSES: OrderStatus[] = [
+  OrderStatus.PAID,
+  OrderStatus.COD_CONFIRMED,
+  OrderStatus.PACKED,
+  OrderStatus.SHIPPED,
+  OrderStatus.DELIVERED,
+];
+
+export type DiscountCustomer = {
+  userId?: string | null;
+  phone?: string | null;
+  email?: string | null;
+};
 
 export class CheckoutError extends Error {
   status: number;
@@ -53,7 +69,31 @@ async function decrementDiscountUse(tx: Tx, discountId: string) {
   `;
 }
 
-export async function resolveDiscount(code: string | null | undefined) {
+export async function customerHasCompletedOrder(
+  customer: DiscountCustomer,
+): Promise<boolean> {
+  const or: Prisma.OrderWhereInput[] = [];
+  if (customer.userId) or.push({ userId: customer.userId });
+  const phone = customer.phone ? normalizePhone(customer.phone) : null;
+  if (phone) or.push({ customerPhone: phone });
+  const email = customer.email?.trim().toLowerCase();
+  if (email) or.push({ customerEmail: email });
+  if (or.length === 0) return false;
+
+  const prior = await prisma.order.findFirst({
+    where: {
+      status: { in: COMPLETED_ORDER_STATUSES },
+      OR: or,
+    },
+    select: { id: true },
+  });
+  return Boolean(prior);
+}
+
+export async function resolveDiscount(
+  code: string | null | undefined,
+  customer?: DiscountCustomer,
+) {
   if (!code?.trim()) return null;
   const discount = await prisma.discount.findUnique({
     where: { code: code.trim().toUpperCase() },
@@ -70,6 +110,19 @@ export async function resolveDiscount(code: string | null | undefined) {
   }
   if (discount.maxUses != null && discount.usedCount >= discount.maxUses) {
     throw new CheckoutError("This coupon has reached its usage limit");
+  }
+  if (discount.firstOrderOnly) {
+    const phone = customer?.phone ? normalizePhone(customer.phone) : null;
+    const email = customer?.email?.trim().toLowerCase() || null;
+    const userId = customer?.userId ?? null;
+    if (!phone && !email && !userId) {
+      throw new CheckoutError(
+        "Enter your phone or email to apply this first-order code",
+      );
+    }
+    if (await customerHasCompletedOrder({ userId, phone, email })) {
+      throw new CheckoutError("This welcome code is for first orders only");
+    }
   }
   return discount;
 }
@@ -120,13 +173,14 @@ function nextOrderNumber() {
 export async function quoteCheckout(opts: {
   items: CartInputItem[];
   couponCode?: string | null;
+  customer?: DiscountCustomer;
 }) {
   const lines = await priceCartItems(opts.items);
   let discount: Discount | null = null;
   let couponError: string | null = null;
   if (opts.couponCode?.trim()) {
     try {
-      discount = await resolveDiscount(opts.couponCode);
+      discount = await resolveDiscount(opts.couponCode, opts.customer);
     } catch (err) {
       couponError =
         err instanceof CheckoutError ? err.message : "Invalid coupon";
@@ -216,7 +270,11 @@ export async function createCheckoutOrder(input: CreateCheckoutInput) {
   }
 
   const lines = await priceCartItems(input.items);
-  const discount = await resolveDiscount(input.couponCode);
+  const discount = await resolveDiscount(input.couponCode, {
+    userId: input.userId,
+    phone: phone,
+    email: input.customerEmail,
+  });
   if (discount && lines.reduce((s, l) => s + l.lineTotal, 0) < discount.minOrder) {
     throw new CheckoutError(
       `Coupon requires a minimum order of ₹${discount.minOrder}`,
@@ -461,6 +519,52 @@ export async function releaseStockForOrder(orderId: string, tx?: Tx) {
   return prisma.$transaction((client) => run(client));
 }
 
+/**
+ * Cancel stale unpaid prepaid orders and release held inventory.
+ * Intended for the Vercel cron at `/api/cron/release-pending-orders`.
+ */
+export async function releaseExpiredPendingOrders(opts?: {
+  olderThanMinutes?: number;
+  limit?: number;
+}) {
+  const olderThanMinutes =
+    opts?.olderThanMinutes ?? PENDING_PAYMENT_HOLD_MINUTES;
+  const limit = Math.min(Math.max(opts?.limit ?? 40, 1), 100);
+  const cutoff = new Date(Date.now() - olderThanMinutes * 60_000);
+
+  const stale = await prisma.order.findMany({
+    where: {
+      status: {
+        in: [OrderStatus.PENDING_PAYMENT, OrderStatus.PAYMENT_FAILED],
+      },
+      stockReserved: true,
+      createdAt: { lt: cutoff },
+    },
+    orderBy: { createdAt: "asc" },
+    take: limit,
+    select: { id: true, orderNumber: true },
+  });
+
+  const released: string[] = [];
+  for (const order of stale) {
+    await cancelPendingOrder(
+      order.id,
+      `Auto-released after ${olderThanMinutes}m without payment`,
+    );
+    released.push(order.orderNumber);
+  }
+
+  if (released.length > 0) {
+    revalidateCatalog();
+  }
+
+  return {
+    cutoff: cutoff.toISOString(),
+    scanned: stale.length,
+    released,
+  };
+}
+
 /** Cancel a pending prepaid order and release any held stock. */
 export async function cancelPendingOrder(orderId: string, note?: string) {
   return prisma.$transaction(async (tx) => {
@@ -568,6 +672,7 @@ export async function updateOrderFulfillmentStatus(opts: {
     });
     return serializeOrder(updated);
   });
+  revalidateCatalog();
 }
 
 export function serializeOrder(

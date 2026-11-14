@@ -1,6 +1,7 @@
 import { error, fromZod, json, requireBackoffice } from "@/lib/admin/http";
 import { applyStockChange } from "@/lib/admin/stock";
 import { stockBulkSchema } from "@/lib/admin/validators";
+import { revalidateCatalog } from "@/lib/catalog-revalidate";
 
 export async function POST(request: Request) {
   const { user, response } = await requireBackoffice();
@@ -21,6 +22,7 @@ export async function POST(request: Request) {
       );
     }
 
+    revalidateCatalog();
     return json({ count: results.length, results });
   } catch (err) {
     if (err && typeof err === "object" && "issues" in err) {

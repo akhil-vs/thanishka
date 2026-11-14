@@ -1,7 +1,7 @@
 "use client";
 
 const messages = [
-  "Free shipping above ₹1,999 across Kerala",
+  "Free shipping above ₹1,999 across India",
   "New: Onam Edit — shop kasavu-ready looks",
   "Visit our boutique · Vellayambalam, Trivandrum",
   "Welcome offer · THANISHKA10 for 10% off first order",

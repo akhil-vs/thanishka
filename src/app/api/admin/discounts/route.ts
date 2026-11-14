@@ -26,6 +26,7 @@ export async function POST(request: Request) {
         value: body.value,
         minOrder: body.minOrder ?? 0,
         maxUses: body.maxUses ?? null,
+        firstOrderOnly: body.firstOrderOnly ?? false,
         startsAt: body.startsAt ? new Date(body.startsAt) : null,
         endsAt: body.endsAt ? new Date(body.endsAt) : null,
         active: body.active ?? true,

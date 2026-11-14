@@ -66,6 +66,7 @@ export const discountInputSchema = z.object({
   value: z.number().positive(),
   minOrder: z.number().int().min(0).optional(),
   maxUses: z.number().int().positive().nullable().optional(),
+  firstOrderOnly: z.boolean().optional(),
   startsAt: z.string().nullable().optional(),
   endsAt: z.string().nullable().optional(),
   active: z.boolean().optional(),

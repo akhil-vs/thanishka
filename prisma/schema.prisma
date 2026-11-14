@@ -161,19 +161,20 @@ model StockMovement {
 }
 
 model Discount {
-  id        String    @id @default(cuid())
-  code      String    @unique
-  label     String
-  type      String
-  value     Float
-  minOrder  Int       @default(0) @map("min_order")
-  maxUses   Int?      @map("max_uses")
-  usedCount Int       @default(0) @map("used_count")
-  startsAt  DateTime? @map("starts_at")
-  endsAt    DateTime? @map("ends_at")
-  active    Boolean   @default(true)
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
+  id             String    @id @default(cuid())
+  code           String    @unique
+  label          String
+  type           String
+  value          Float
+  minOrder       Int       @default(0) @map("min_order")
+  maxUses        Int?      @map("max_uses")
+  usedCount      Int       @default(0) @map("used_count")
+  firstOrderOnly Boolean   @default(false) @map("first_order_only")
+  startsAt       DateTime? @map("starts_at")
+  endsAt         DateTime? @map("ends_at")
+  active         Boolean   @default(true)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
   orders Order[]
 
@@ -313,4 +314,16 @@ model Feedback {
   @@index([status, createdAt])
   @@index([userId])
   @@map("feedback")
+}
+
+model NewsletterSubscriber {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  whatsappOptIn Boolean  @default(false) @map("whatsapp_opt_in")
+  phone         String?
+  source        String   @default("storefront")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("newsletter_subscribers")
 }

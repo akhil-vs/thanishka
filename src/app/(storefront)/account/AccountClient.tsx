@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { authFetch } from "@/lib/auth/client";
@@ -32,7 +32,7 @@ export function AccountClient({
   initial: MeResponse | null;
   initialOrders?: SerializedOrder[];
 }) {
-  const [mode, setMode] = useState<"otp" | "email" | "register">("otp");
+  const [mode, setMode] = useState<"otp" | "email" | "register">("email");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [me, setMe] = useState<MeResponse | null>(initial);
@@ -41,6 +41,28 @@ export function AccountClient({
   const [maskedPhone, setMaskedPhone] = useState("");
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [orders, setOrders] = useState<SerializedOrder[]>(initialOrders);
+  const [returnsHref, setReturnsHref] = useState("/returns");
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/store")
+      .then((res) => res.json())
+      .then((data: { contact?: { whatsapp?: string | null } }) => {
+        if (cancelled || !data.contact?.whatsapp) return;
+        const orderHint = orders[0]?.orderNumber
+          ? ` for order ${orders[0].orderNumber}`
+          : "";
+        setReturnsHref(
+          `https://wa.me/${data.contact.whatsapp}?text=${encodeURIComponent(
+            `Hi Thanishka, I’d like an exchange/return${orderHint}`,
+          )}`,
+        );
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [orders]);
 
   async function refreshOrders() {
     try {
@@ -251,17 +273,39 @@ export function AccountClient({
         </section>
 
         <div className="mt-10 grid gap-4 md:grid-cols-2">
-          {[
-            ["Wishlist", "Synced wishlist lands with the next commerce pass"],
-            ["Returns", "Request exchange or return from delivered orders"],
-          ].map(([title, body]) => (
-            <div key={title} className="border border-line p-5">
-              <h2 className="font-display text-[11px] tracking-[0.16em]">
-                {title}
-              </h2>
-              <p className="mt-2 font-serif text-muted">{body}</p>
-            </div>
-          ))}
+          <div className="border border-line p-5">
+            <h2 className="font-display text-[11px] tracking-[0.16em]">
+              Wishlist
+            </h2>
+            <p className="mt-2 font-serif text-muted">
+              Saved dresses stay on this device — open your wishlist anytime.
+            </p>
+            <Link
+              href="/wishlist"
+              className="mt-4 inline-block font-display text-[10px] tracking-[0.14em] text-kasavu-deep underline-offset-2 hover:underline"
+            >
+              View wishlist
+            </Link>
+          </div>
+          <div className="border border-line p-5">
+            <h2 className="font-display text-[11px] tracking-[0.16em]">
+              Returns & exchanges
+            </h2>
+            <p className="mt-2 font-serif text-muted">
+              Unused pieces with tags can be exchanged within 7 days of delivery.
+            </p>
+            <a
+              href={returnsHref}
+              {...(returnsHref.startsWith("http")
+                ? { target: "_blank", rel: "noopener noreferrer" }
+                : {})}
+              className="mt-4 inline-block font-display text-[10px] tracking-[0.14em] text-kasavu-deep underline-offset-2 hover:underline"
+            >
+              {returnsHref.startsWith("http")
+                ? "Start via WhatsApp"
+                : "Read returns policy"}
+            </a>
+          </div>
         </div>
 
         <section className="mt-10 border border-line p-5">
@@ -377,14 +421,14 @@ export function AccountClient({
     <div className="container-page max-w-md py-16">
       <h1 className="font-display text-3xl tracking-[0.14em]">Sign in</h1>
       <p className="mt-3 font-serif text-muted">
-        OTP or email — your addresses and (soon) orders in one place.
+        Email is the reliable path today. OTP is available when SMS is configured.
       </p>
       <div className="mt-6 flex gap-2">
         {(
           [
-            ["otp", "OTP"],
             ["email", "Email"],
             ["register", "Register"],
+            ["otp", "OTP"],
           ] as const
         ).map(([value, label]) => (
           <button

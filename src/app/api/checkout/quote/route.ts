@@ -8,6 +8,10 @@ export async function POST(request: Request) {
     const quote = await quoteCheckout({
       items: body.items,
       couponCode: body.couponCode,
+      customer: {
+        phone: body.customerPhone,
+        email: body.customerEmail || null,
+      },
     });
     return json({
       subtotal: quote.subtotal,
