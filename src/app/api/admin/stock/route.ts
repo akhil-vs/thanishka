@@ -1,9 +1,11 @@
 import { error, fromZod, json, requireBackoffice } from "@/lib/admin/http";
 import { applyStockChange, totalUnits } from "@/lib/admin/stock";
-import { asSizeMap } from "@/lib/admin/types";
+import { asSizeMap, asStringArray } from "@/lib/admin/types";
 import { stockSingleSchema } from "@/lib/admin/validators";
 import { revalidateCatalog } from "@/lib/catalog-revalidate";
 import { prisma } from "@/lib/db";
+
+const LOW_STOCK_TOTAL = 5;
 
 export async function GET() {
   const { response } = await requireBackoffice();
@@ -17,19 +19,43 @@ export async function GET() {
     }),
   ]);
 
+  const stock = rows.map((p) => {
+    const sizes = asSizeMap(p.sizes);
+    const images = asStringArray(p.images);
+    const total = totalUnits(sizes);
+    return {
+      id: p.id,
+      name: p.name,
+      slug: p.slug,
+      active: p.active,
+      category: p.category,
+      categorySlug: p.categorySlug,
+      price: p.price,
+      image: images[0] ?? null,
+      sizes,
+      total,
+    };
+  });
+
+  const active = stock.filter((p) => p.active);
+  const totalUnitsCount = active.reduce((sum, p) => sum + p.total, 0);
+  const lowStockCount = active.filter(
+    (p) => p.total > 0 && p.total <= LOW_STOCK_TOTAL,
+  ).length;
+  const outOfStockCount = active.filter((p) => p.total === 0).length;
+  const retailValue = active.reduce((sum, p) => sum + p.price * p.total, 0);
+
   return json({
-    stock: rows.map((p) => {
-      const sizes = asSizeMap(p.sizes);
-      return {
-        id: p.id,
-        name: p.name,
-        slug: p.slug,
-        active: p.active,
-        sizes,
-        total: totalUnits(sizes),
-      };
-    }),
+    stock,
     movements,
+    summary: {
+      activeStyles: active.length,
+      totalUnits: totalUnitsCount,
+      lowStock: lowStockCount,
+      outOfStock: outOfStockCount,
+      retailValue,
+      lowStockThreshold: LOW_STOCK_TOTAL,
+    },
   });
 }
 
