@@ -35,4 +35,8 @@ export const verifyPaymentSchema = z.object({
 export const quoteCheckoutSchema = z.object({
   items: z.array(checkoutItemSchema).min(1).max(40),
   couponCode: z.string().max(40).optional().nullable(),
+  customerPhone: z.string().max(20).optional().nullable(),
+  customerEmail: z
+    .union([z.string().trim().email(), z.literal(""), z.null()])
+    .optional(),
 });

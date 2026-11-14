@@ -142,6 +142,8 @@ export function CheckoutForm({ items }: { items: CartItem[] }) {
           body: JSON.stringify({
             items: cartPayload(items),
             couponCode: coupon,
+            customerPhone: phone || null,
+            customerEmail: email || null,
           }),
         });
         if (!cancelled) setQuote(data);
@@ -157,7 +159,7 @@ export function CheckoutForm({ items }: { items: CartItem[] }) {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [itemKey, coupon, items]);
+  }, [itemKey, coupon, items, phone, email]);
 
   const activeQuote = items.length === 0 ? null : quote;
 
@@ -172,6 +174,8 @@ export function CheckoutForm({ items }: { items: CartItem[] }) {
         body: JSON.stringify({
           items: cartPayload(items),
           couponCode: next,
+          customerPhone: phone || null,
+          customerEmail: email || null,
         }),
       });
       setQuote(data);

@@ -15,6 +15,12 @@ type Product = {
   categorySlug: string;
   price: number;
   compareAt: number | null;
+  colors: string[];
+  fabric: string;
+  occasion: string[];
+  description: string;
+  care: string;
+  images: string[];
   active: boolean;
   isNew: boolean;
   onSale: boolean;
@@ -45,15 +51,78 @@ const emptyForm = {
   featured: false,
 };
 
+type FormState = typeof emptyForm;
+
+function productToForm(p: Product): FormState {
+  return {
+    name: p.name,
+    slug: p.slug,
+    category: p.category,
+    categorySlug: p.categorySlug,
+    price: p.price,
+    compareAt: p.compareAt != null ? String(p.compareAt) : "",
+    colors: p.colors.join(", "),
+    fabric: p.fabric,
+    occasion: p.occasion.join(", "),
+    description: p.description,
+    care: p.care,
+    images: [...p.images],
+    xs: p.sizes.XS ?? 0,
+    s: p.sizes.S ?? 0,
+    m: p.sizes.M ?? 0,
+    l: p.sizes.L ?? 0,
+    xl: p.sizes.XL ?? 0,
+    xxl: p.sizes.XXL ?? 0,
+    isNew: p.isNew,
+    featured: p.featured,
+  };
+}
+
+function formPayload(form: FormState, includeSizes: boolean) {
+  const base = {
+    name: form.name,
+    slug: form.slug,
+    category: form.category,
+    categorySlug: form.categorySlug,
+    price: Number(form.price),
+    compareAt: form.compareAt ? Number(form.compareAt) : null,
+    colors: form.colors.split(",").map((s) => s.trim()).filter(Boolean),
+    fabric: form.fabric,
+    occasion: form.occasion
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
+    description: form.description,
+    care: form.care,
+    images: form.images,
+    isNew: form.isNew,
+    featured: form.featured,
+    onSale: Boolean(form.compareAt),
+  };
+  if (!includeSizes) return base;
+  return {
+    ...base,
+    sizes: {
+      XS: Number(form.xs),
+      S: Number(form.s),
+      M: Number(form.m),
+      L: Number(form.l),
+      XL: Number(form.xl),
+      XXL: Number(form.xxl),
+    },
+  };
+}
+
 export default function AdminProductsPage() {
   const { data, error, setError, reload } = useAdminResource<{
     products: Product[];
   }>("/api/admin/products");
   const products = data?.products ?? [];
   const [form, setForm] = useState(emptyForm);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
 
-  async function onCreate(e: FormEvent) {
+  async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
     setMessage("");
@@ -62,44 +131,49 @@ export default function AdminProductsPage() {
       return;
     }
     try {
-      await adminFetch("/api/admin/products", {
-        method: "POST",
-        body: JSON.stringify({
-          name: form.name,
-          slug: form.slug,
-          category: form.category,
-          categorySlug: form.categorySlug,
-          price: Number(form.price),
-          compareAt: form.compareAt ? Number(form.compareAt) : null,
-          colors: form.colors.split(",").map((s) => s.trim()).filter(Boolean),
-          fabric: form.fabric,
-          occasion: form.occasion
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean),
-          description: form.description,
-          care: form.care,
-          images: form.images,
-          sizes: {
-            XS: Number(form.xs),
-            S: Number(form.s),
-            M: Number(form.m),
-            L: Number(form.l),
-            XL: Number(form.xl),
-            XXL: Number(form.xxl),
-          },
-          isNew: form.isNew,
-          featured: form.featured,
-          onSale: Boolean(form.compareAt),
-          active: true,
-        }),
-      });
-      setMessage("Product created.");
+      if (editingId) {
+        await adminFetch(`/api/admin/products/${editingId}`, {
+          method: "PATCH",
+          body: JSON.stringify(formPayload(form, false)),
+        });
+        setMessage("Product updated.");
+      } else {
+        await adminFetch("/api/admin/products", {
+          method: "POST",
+          body: JSON.stringify({
+            ...formPayload(form, true),
+            active: true,
+          }),
+        });
+        setMessage("Product created.");
+      }
       setForm(emptyForm);
+      setEditingId(null);
       reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Create failed");
+      setError(
+        err instanceof Error
+          ? err.message
+          : editingId
+            ? "Update failed"
+            : "Create failed",
+      );
     }
+  }
+
+  function startEdit(product: Product) {
+    setEditingId(product.id);
+    setForm(productToForm(product));
+    setMessage("");
+    setError("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setForm(emptyForm);
+    setMessage("");
+    setError("");
   }
 
   async function toggleActive(product: Product) {
@@ -121,18 +195,19 @@ export default function AdminProductsPage() {
         Products
       </h1>
       <p className="mt-2 font-serif text-muted">
-        Catalogue management — create styles and activate or archive them.
+        Catalogue management — create, edit, and archive styles. Use Stock to
+        adjust size quantities after create.
       </p>
 
       {error ? <p className="mt-4 text-sm text-sale">{error}</p> : null}
       {message ? <p className="mt-4 text-sm text-emerald">{message}</p> : null}
 
       <form
-        onSubmit={onCreate}
+        onSubmit={onSubmit}
         className="mt-8 grid gap-3 border border-line bg-ivory p-5 md:grid-cols-2"
       >
         <h2 className="font-display text-[11px] tracking-[0.16em] md:col-span-2">
-          Add product
+          {editingId ? "Edit product" : "Add product"}
         </h2>
         {(
           [
@@ -183,33 +258,40 @@ export default function AdminProductsPage() {
           onChange={(images) => setForm((f) => ({ ...f, images }))}
           maxFiles={8}
         />
-        <div className="grid grid-cols-6 gap-2 md:col-span-2">
-          {(
-            [
-              ["xs", "XS"],
-              ["s", "S"],
-              ["m", "M"],
-              ["l", "L"],
-              ["xl", "XL"],
-              ["xxl", "XXL"],
-            ] as const
-          ).map(([key, label]) => (
-            <label key={key} className="block text-sm">
-              <span className="mb-1 block font-display text-[9px] tracking-[0.14em] text-muted">
-                {label}
-              </span>
-              <input
-                type="number"
-                min={0}
-                value={form[key]}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, [key]: Number(e.target.value) }))
-                }
-                className="w-full border border-line px-2 py-2"
-              />
-            </label>
-          ))}
-        </div>
+        {!editingId ? (
+          <div className="grid grid-cols-6 gap-2 md:col-span-2">
+            {(
+              [
+                ["xs", "XS"],
+                ["s", "S"],
+                ["m", "M"],
+                ["l", "L"],
+                ["xl", "XL"],
+                ["xxl", "XXL"],
+              ] as const
+            ).map(([key, label]) => (
+              <label key={key} className="block text-sm">
+                <span className="mb-1 block font-display text-[9px] tracking-[0.14em] text-muted">
+                  {label}
+                </span>
+                <input
+                  type="number"
+                  min={0}
+                  value={form[key]}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, [key]: Number(e.target.value) }))
+                  }
+                  className="w-full border border-line px-2 py-2"
+                />
+              </label>
+            ))}
+          </div>
+        ) : (
+          <p className="font-serif text-sm text-muted md:col-span-2">
+            Size quantities are managed on the Stock page so edits do not
+            overwrite live inventory.
+          </p>
+        )}
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
@@ -230,8 +312,15 @@ export default function AdminProductsPage() {
           />
           Featured
         </label>
-        <div className="md:col-span-2">
-          <Button type="submit">Create product</Button>
+        <div className="flex flex-wrap gap-2 md:col-span-2">
+          <Button type="submit">
+            {editingId ? "Save changes" : "Create product"}
+          </Button>
+          {editingId ? (
+            <Button type="button" variant="secondary" onClick={cancelEdit}>
+              Cancel
+            </Button>
+          ) : null}
         </div>
       </form>
 
@@ -263,14 +352,24 @@ export default function AdminProductsPage() {
                   {p.active ? "Active" : "Archived"}
                 </td>
                 <td className="px-3 py-3">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="px-3 py-2"
-                    onClick={() => toggleActive(p)}
-                  >
-                    {p.active ? "Archive" : "Activate"}
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="px-3 py-2"
+                      onClick={() => startEdit(p)}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="px-3 py-2"
+                      onClick={() => toggleActive(p)}
+                    >
+                      {p.active ? "Archive" : "Activate"}
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ))}
