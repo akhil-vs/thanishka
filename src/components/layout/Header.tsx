@@ -136,7 +136,7 @@ export function Header() {
             >
               <Menu size={20} strokeWidth={1.5} />
             </button>
-            <Link href="/shop" aria-label="Search shop" className="p-2">
+            <Link href="/shop?focus=search" aria-label="Search shop" className="p-2">
               <Search size={18} strokeWidth={1.5} />
             </Link>
           </div>
@@ -144,9 +144,9 @@ export function Header() {
           <nav className="hidden items-center gap-7 md:flex">
             {nav.map((item) =>
               item.label === "Shop" ? (
-                <button
+                <Link
                   key={item.href}
-                  type="button"
+                  href={item.href}
                   aria-expanded={mega}
                   aria-haspopup="true"
                   className="font-display text-[11px] tracking-[0.2em] text-charcoal/80 transition hover:text-charcoal"
@@ -156,7 +156,7 @@ export function Header() {
                   onBlur={scheduleCloseMega}
                 >
                   {item.label}
-                </button>
+                </Link>
               ) : (
                 <Link
                   key={item.href}
@@ -192,6 +192,13 @@ export function Header() {
             className="flex items-center gap-1 md:gap-2"
             onMouseEnter={closeMega}
           >
+            <Link
+              href="/shop?focus=search"
+              className="hidden p-2 md:inline-flex"
+              aria-label="Search shop"
+            >
+              <Search size={18} strokeWidth={1.5} />
+            </Link>
             <Link href="/account" className="hidden p-2 md:inline-flex" aria-label="Account">
               <User size={18} strokeWidth={1.5} />
             </Link>

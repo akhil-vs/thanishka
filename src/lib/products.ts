@@ -358,14 +358,21 @@ export function getRelated(product: Product, limit = 4) {
     .slice(0, limit);
 }
 
-export function filterProducts(opts: {
+export type ProductFilterOpts = {
   category?: string;
   size?: string;
   occasion?: string;
+  color?: string;
   q?: string;
   sort?: string;
-}) {
-  let list = [...products];
+};
+
+/** Pure list filter — safe for client components. */
+export function filterProductList(
+  source: Product[],
+  opts: ProductFilterOpts,
+) {
+  let list = [...source];
 
   if (opts.category && opts.category !== "all" && opts.category !== "new-in") {
     if (opts.category === "festive") {
@@ -399,13 +406,23 @@ export function filterProducts(opts: {
     );
   }
 
+  if (opts.color) {
+    const color = opts.color.toLowerCase();
+    list = list.filter((p) =>
+      p.colors.some((c) => c.toLowerCase() === color),
+    );
+  }
+
   if (opts.q) {
-    const q = opts.q.toLowerCase();
+    const q = opts.q.toLowerCase().trim();
     list = list.filter(
       (p) =>
         p.name.toLowerCase().includes(q) ||
         p.category.toLowerCase().includes(q) ||
-        p.fabric.toLowerCase().includes(q),
+        p.fabric.toLowerCase().includes(q) ||
+        p.colors.some((c) => c.toLowerCase().includes(q)) ||
+        p.occasion.some((o) => o.toLowerCase().includes(q)) ||
+        p.description.toLowerCase().includes(q),
     );
   }
 
@@ -420,10 +437,15 @@ export function filterProducts(opts: {
       list.sort((a, b) => Number(b.isNew) - Number(a.isNew));
       break;
     default:
+      list.sort((a, b) => Number(b.featured) - Number(a.featured));
       break;
   }
 
   return list;
+}
+
+export function filterProducts(opts: ProductFilterOpts) {
+  return filterProductList(products, opts);
 }
 
 export function totalStock(product: Product) {

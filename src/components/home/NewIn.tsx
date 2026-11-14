@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { products } from "@/lib/products";
+import { listCatalogProducts } from "@/lib/catalog";
 import { ProductCard } from "@/components/product/ProductCard";
 import { Reveal } from "@/components/ui/Reveal";
 
-export function NewIn() {
-  const items = products.filter((p) => p.isNew).slice(0, 8);
+export async function NewIn() {
+  const catalog = await listCatalogProducts();
+  const items = catalog.filter((p) => p.isNew).slice(0, 8);
 
   return (
     <section className="py-20 md:py-28">

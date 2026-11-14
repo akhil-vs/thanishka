@@ -1,6 +1,7 @@
 import { error, fromZod, json, requireBackoffice } from "@/lib/admin/http";
 import { asSizeMap, asStringArray } from "@/lib/admin/types";
 import { productInputSchema } from "@/lib/admin/validators";
+import { revalidateCatalog } from "@/lib/catalog-revalidate";
 import { prisma } from "@/lib/db";
 
 export async function GET() {
@@ -49,6 +50,7 @@ export async function POST(request: Request) {
         active: body.active ?? true,
       },
     });
+    revalidateCatalog();
     return json({ product }, { status: 201 });
   } catch (err) {
     if (err && typeof err === "object" && "issues" in err) {

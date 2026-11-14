@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { Button } from "@/components/ui/Button";
+import { SubscribeForm } from "@/components/home/SubscribeForm";
 
 const columns = [
   {
@@ -35,9 +34,6 @@ const columns = [
 ];
 
 export function Footer() {
-  const [email, setEmail] = useState("");
-  const [done, setDone] = useState(false);
-
   return (
     <footer className="mt-auto border-t border-line bg-mist">
       <div className="container-page grid gap-12 py-16 md:grid-cols-[1.2fr_1fr]">
@@ -49,34 +45,9 @@ export function Footer() {
             Readymade women&apos;s dresses from Trivandrum — editorial cuts,
             kasavu accents, sizes XS–XXL.
           </p>
-          <form
-            className="mt-8 flex max-w-md flex-col gap-3 sm:flex-row"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (email) setDone(true);
-            }}
-          >
-            <label className="sr-only" htmlFor="footer-email">
-              Email
-            </label>
-            <input
-              id="footer-email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email for 10% off"
-              className="flex-1 border border-charcoal/20 bg-ivory px-4 py-3 text-sm outline-none focus:border-kasavu"
-            />
-            <Button type="submit" variant="gold">
-              {done ? "Welcome" : "Subscribe"}
-            </Button>
-          </form>
-          {done && (
-            <p className="mt-3 text-sm text-emerald">
-              Use code THANISHKA10 on your first order.
-            </p>
-          )}
+          <div className="max-w-md">
+            <SubscribeForm source="footer" variant="footer" />
+          </div>
         </div>
 
         <div className="grid grid-cols-3 gap-6">

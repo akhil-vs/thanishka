@@ -7,8 +7,19 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { formatINR } from "@/lib/format";
+import { authFetch } from "@/lib/auth/client";
 import { useCart } from "@/store/cart";
 import { useUI } from "@/store/ui";
+
+type Quote = {
+  subtotal: number;
+  discountAmount: number;
+  shippingAmount: number;
+  total: number;
+  couponCode: string | null;
+  couponLabel: string | null;
+  couponError: string | null;
+};
 
 function useIsClient() {
   return useSyncExternalStore(
@@ -23,6 +34,9 @@ export function CartDrawer() {
   const { items, removeItem, updateQty, subtotal, coupon, setCoupon } =
     useCart();
   const [code, setCode] = useState("");
+  const [couponBusy, setCouponBusy] = useState(false);
+  const [couponMsg, setCouponMsg] = useState("");
+  const [couponOk, setCouponOk] = useState(false);
   const mounted = useIsClient();
   const total = subtotal();
 
@@ -32,6 +46,52 @@ export function CartDrawer() {
       document.body.style.overflow = "";
     };
   }, [cartOpen]);
+
+  async function applyCoupon() {
+    const next = code.trim() || null;
+    setCouponMsg("");
+    setCouponOk(false);
+    if (!next) {
+      setCoupon(null);
+      setCouponMsg("Coupon cleared");
+      return;
+    }
+    if (items.length === 0) {
+      setCouponMsg("Add items before applying a coupon");
+      return;
+    }
+    setCouponBusy(true);
+    try {
+      const data = await authFetch<Quote>("/api/checkout/quote", {
+        method: "POST",
+        body: JSON.stringify({
+          items: items.map((i) => ({
+            productId: i.productId,
+            size: i.size,
+            quantity: i.quantity,
+          })),
+          couponCode: next,
+        }),
+      });
+      if (data.couponError) {
+        setCoupon(null);
+        setCouponMsg(data.couponError);
+        setCouponOk(false);
+        return;
+      }
+      setCoupon(data.couponCode);
+      setCouponOk(true);
+      setCouponMsg(
+        `${data.couponLabel || data.couponCode} applied — −${formatINR(data.discountAmount)}`,
+      );
+    } catch (err) {
+      setCoupon(null);
+      setCouponOk(false);
+      setCouponMsg(err instanceof Error ? err.message : "Invalid coupon");
+    } finally {
+      setCouponBusy(false);
+    }
+  }
 
   if (!mounted) return null;
 
@@ -146,10 +206,10 @@ export function CartDrawer() {
             {items.length > 0 && (
               <div className="border-t border-line px-5 py-5">
                 <form
-                  className="mb-4 flex gap-2"
+                  className="mb-3 flex gap-2"
                   onSubmit={(e) => {
                     e.preventDefault();
-                    setCoupon(code.trim() || null);
+                    void applyCoupon();
                   }}
                 >
                   <input
@@ -158,13 +218,24 @@ export function CartDrawer() {
                     placeholder="Coupon code"
                     className="flex-1 border border-line bg-transparent px-3 py-2 text-sm outline-none focus:border-kasavu"
                   />
-                  <Button type="submit" variant="secondary" className="px-4">
-                    Apply
+                  <Button
+                    type="submit"
+                    variant="secondary"
+                    className="px-4"
+                    disabled={couponBusy}
+                  >
+                    {couponBusy ? "…" : "Apply"}
                   </Button>
                 </form>
-                {coupon ? (
+                {couponMsg ? (
+                  <p
+                    className={`mb-3 text-sm ${couponOk ? "text-emerald" : "text-sale"}`}
+                  >
+                    {couponMsg}
+                  </p>
+                ) : coupon ? (
                   <p className="mb-3 text-sm text-emerald">
-                    Coupon {coupon} saved — applied at checkout
+                    Coupon {coupon} ready for checkout
                   </p>
                 ) : null}
                 <div className="mb-4 flex justify-between font-display text-[11px] tracking-[0.16em]">

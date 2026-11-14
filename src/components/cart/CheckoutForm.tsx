@@ -348,10 +348,11 @@ export function CheckoutForm({ items }: { items: CartItem[] }) {
           className="w-full border border-line bg-ivory px-3 py-2.5 text-sm outline-none focus:border-kasavu"
         />
         <input
+          required
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="Email (for receipt)"
+          placeholder="Email (required for receipt)"
           className="w-full border border-line bg-ivory px-3 py-2.5 text-sm outline-none focus:border-kasavu"
         />
         <input

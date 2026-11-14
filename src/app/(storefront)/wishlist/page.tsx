@@ -1,13 +1,35 @@
 "use client";
 
-import { products } from "@/lib/products";
+import { useEffect, useState } from "react";
+import type { Product } from "@/lib/products";
 import { ProductCard } from "@/components/product/ProductCard";
 import { ButtonLink } from "@/components/ui/Button";
 import { useWishlist } from "@/store/wishlist";
 
 export default function WishlistPage() {
   const ids = useWishlist((s) => s.ids);
-  const items = products.filter((p) => ids.includes(p.id));
+  const [catalog, setCatalog] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/products")
+      .then((res) => res.json())
+      .then((data: { products?: Product[] }) => {
+        if (!cancelled) setCatalog(data.products ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setCatalog([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const items = catalog.filter((p) => ids.includes(p.id));
 
   return (
     <div className="container-page py-12 md:py-16">
@@ -15,7 +37,9 @@ export default function WishlistPage() {
       <p className="mt-2 font-serif text-muted">
         Saved looks — ready when you are.
       </p>
-      {items.length === 0 ? (
+      {loading ? (
+        <p className="mt-12 font-serif text-muted">Loading saved dresses…</p>
+      ) : items.length === 0 ? (
         <div className="mt-12">
           <p className="font-serif text-xl text-muted">No saved dresses yet.</p>
           <ButtonLink href="/shop" className="mt-6" variant="secondary">
