@@ -140,7 +140,7 @@ Admin / Studio **Feedback** inbox: moderate order-linked notes from delivered cu
 
 ## Ops jobs
 
-- **Abandoned payment release** — Vercel Cron hits `GET /api/cron/release-pending-orders` every 15 minutes (see `vercel.json`). Cancels `PENDING_PAYMENT` / `PAYMENT_FAILED` orders older than 45 minutes and releases held stock. Set `CRON_SECRET` in Production; Vercel sends `Authorization: Bearer $CRON_SECRET`.
+- **Abandoned payment release** — Vercel Cron hits `GET /api/cron/release-pending-orders` once daily at 04:00 UTC (see `vercel.json`; Hobby plans allow at most one run per day — use a denser schedule on Pro). Cancels `PENDING_PAYMENT` / `PAYMENT_FAILED` orders older than 45 minutes and releases held stock. Set `CRON_SECRET` in Production; Vercel sends `Authorization: Bearer $CRON_SECRET`.
 
 ## Next phases
 
