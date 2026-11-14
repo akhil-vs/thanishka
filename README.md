@@ -134,6 +134,10 @@ Admin / Studio **Orders** desk: list, pack/ship/deliver, cancel (restocks held i
 - Coupon: `THANISHKA10` (10% off) from the discounts table
 - Order confirmation at `/order/[id]`; signed-in history on `/account`
 
+## Ops jobs
+
+- **Abandoned payment release** — Vercel Cron hits `GET /api/cron/release-pending-orders` every 15 minutes (see `vercel.json`). Cancels `PENDING_PAYMENT` / `PAYMENT_FAILED` orders older than 45 minutes and releases held stock. Set `CRON_SECRET` in Production; Vercel sends `Authorization: Bearer $CRON_SECRET`.
+
 ## Next phases
 
-Shiprocket, SMS OTP provider, GST invoicing, abandoned-payment auto-release job.
+Shiprocket deep integration, SMS OTP provider, automated GST invoicing PDFs.

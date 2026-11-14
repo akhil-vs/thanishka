@@ -15,7 +15,7 @@ const faqs = [
   },
   {
     q: "What payment methods do you accept?",
-    a: "UPI, cards, net banking and cash on delivery via our payment partners. GST invoices are issued with every order.",
+    a: "UPI, cards, net banking and cash on delivery via our payment partners. A payment receipt is included with every order; ask us on WhatsApp if you need a GST tax invoice.",
   },
   {
     q: "How long does shipping take?",

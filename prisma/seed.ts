@@ -146,10 +146,16 @@ async function main() {
         label: "Welcome 10% off",
         type: "percent",
         value: 10,
+        firstOrderOnly: true,
         active: true,
       },
     });
     console.log("Seeded discount THANISHKA10");
+  } else {
+    await prisma.discount.updateMany({
+      where: { code: "THANISHKA10", firstOrderOnly: false },
+      data: { firstOrderOnly: true },
+    });
   }
 
   const offerCount = await prisma.offer.count();

@@ -110,8 +110,8 @@ export function OrderConfirmation({
       </p>
       {confirmed ? (
         <p className="mt-2 text-sm text-muted">
-          A confirmation will follow by email and WhatsApp when fulfilment
-          starts. GST invoice ships with the parcel.
+          We will follow up on your email and phone when packing starts. Need a
+          GST tax invoice? Message us with your order number.
         </p>
       ) : null}
 

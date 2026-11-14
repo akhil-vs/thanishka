@@ -9,7 +9,7 @@ export default function ShippingPage() {
       body={[
         "Orders placed before 2pm IST are packed the same day when stock allows.",
         "Free shipping on orders above ₹1,999. Below that, a flat ₹99 applies within India.",
-        "We partner with Shiprocket / Delhivery for tracking. You’ll receive email and WhatsApp updates at each status: Packed → Shipped → Delivered.",
+        "We ship across India with standard courier partners. You’ll get tracking once an order is marked Shipped — WhatsApp updates are available when you share a mobile number at checkout.",
         "Local Trivandrum customers may also collect from our Vellayambalam boutique.",
       ]}
     />

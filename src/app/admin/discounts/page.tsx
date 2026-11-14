@@ -14,6 +14,7 @@ type Discount = {
   minOrder: number;
   maxUses: number | null;
   usedCount: number;
+  firstOrderOnly: boolean;
   active: boolean;
   startsAt: string | null;
   endsAt: string | null;
@@ -26,6 +27,7 @@ const empty: {
   value: number;
   minOrder: number;
   maxUses: string;
+  firstOrderOnly: boolean;
   active: boolean;
 } = {
   code: "",
@@ -34,6 +36,7 @@ const empty: {
   value: 10,
   minOrder: 0,
   maxUses: "",
+  firstOrderOnly: false,
   active: true,
 };
 
@@ -73,6 +76,14 @@ export default function AdminDiscountsPage() {
     reload();
   }
 
+  async function toggleFirstOrder(d: Discount) {
+    await adminFetch(`/api/admin/discounts/${d.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ firstOrderOnly: !d.firstOrderOnly }),
+    });
+    reload();
+  }
+
   async function remove(id: string) {
     await adminFetch(`/api/admin/discounts/${id}`, { method: "DELETE" });
     reload();
@@ -84,7 +95,8 @@ export default function AdminDiscountsPage() {
         Discounts
       </h1>
       <p className="mt-2 font-serif text-muted">
-        Coupon codes for checkout — percent or fixed amount.
+        Coupon codes for checkout — percent or fixed amount. Mark welcome codes
+        as first-order only so repeat buyers cannot reuse them.
       </p>
 
       {error ? <p className="mt-4 text-sm text-sale">{error}</p> : null}
@@ -154,6 +166,16 @@ export default function AdminDiscountsPage() {
           }
           className="border border-line px-3 py-2"
         />
+        <label className="flex items-center gap-2 text-sm md:col-span-2">
+          <input
+            type="checkbox"
+            checked={form.firstOrderOnly}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, firstOrderOnly: e.target.checked }))
+            }
+          />
+          First order only (matched by phone / email / account)
+        </label>
         <div className="md:col-span-2">
           <Button type="submit">Create discount</Button>
         </div>
@@ -173,23 +195,32 @@ export default function AdminDiscountsPage() {
                 {d.label} · {d.type === "percent" ? `${d.value}%` : `₹${d.value}`}{" "}
                 · used {d.usedCount}
                 {d.maxUses ? `/${d.maxUses}` : ""} ·{" "}
+                {d.firstOrderOnly ? "first order · " : ""}
                 {d.active ? "active" : "off"}
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
                 variant="secondary"
                 className="px-3 py-2"
-                onClick={() => toggle(d).catch((err) => setError(err.message))}
+                onClick={() => toggleFirstOrder(d)}
+              >
+                {d.firstOrderOnly ? "Any order" : "First only"}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                className="px-3 py-2"
+                onClick={() => toggle(d)}
               >
                 {d.active ? "Disable" : "Enable"}
               </Button>
               <Button
                 type="button"
-                variant="ghost"
-                className="px-3 py-2 text-sale"
-                onClick={() => remove(d.id).catch((err) => setError(err.message))}
+                variant="secondary"
+                className="px-3 py-2"
+                onClick={() => remove(d.id)}
               >
                 Delete
               </Button>
