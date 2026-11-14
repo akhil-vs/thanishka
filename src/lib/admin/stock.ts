@@ -1,5 +1,5 @@
-import { prisma } from "@/lib/db";
 import { asSizeMap, type SizeMap } from "@/lib/admin/types";
+import { prisma } from "@/lib/db";
 
 export const SIZE_KEYS = ["XS", "S", "M", "L", "XL", "XXL"] as const;
 export type SizeKey = (typeof SIZE_KEYS)[number];

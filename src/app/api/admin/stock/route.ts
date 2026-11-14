@@ -2,6 +2,7 @@ import { error, fromZod, json, requireBackoffice } from "@/lib/admin/http";
 import { applyStockChange, totalUnits } from "@/lib/admin/stock";
 import { asSizeMap } from "@/lib/admin/types";
 import { stockSingleSchema } from "@/lib/admin/validators";
+import { revalidateCatalog } from "@/lib/catalog-revalidate";
 import { prisma } from "@/lib/db";
 
 export async function GET() {
@@ -43,6 +44,7 @@ export async function PATCH(request: Request) {
       userId: user.id,
       source: "single",
     });
+    revalidateCatalog();
     return json({ result });
   } catch (err) {
     if (err && typeof err === "object" && "issues" in err) {

@@ -1,5 +1,6 @@
 import { error, fromZod, json, requireBackoffice } from "@/lib/admin/http";
 import { productInputSchema } from "@/lib/admin/validators";
+import { revalidateCatalog } from "@/lib/catalog-revalidate";
 import { prisma } from "@/lib/db";
 
 type Params = { params: Promise<{ id: string }> };
@@ -32,6 +33,7 @@ export async function PATCH(request: Request, { params }: Params) {
           body.compareAt === undefined ? existing.compareAt : body.compareAt,
       },
     });
+    revalidateCatalog();
     return json({ product });
   } catch (err) {
     if (err && typeof err === "object" && "issues" in err) {
@@ -53,6 +55,7 @@ export async function DELETE(_request: Request, { params }: Params) {
     where: { id },
     data: { active: false },
   });
+  revalidateCatalog();
 
   return json({ ok: true });
 }

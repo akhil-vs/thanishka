@@ -1,10 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Heart } from "lucide-react";
 import type { Product, Size } from "@/lib/products";
+import { sizeChartForProduct } from "@/lib/size-charts";
 import { formatINR, cn } from "@/lib/format";
 import { Button } from "@/components/ui/Button";
 import { useCart } from "@/store/cart";
@@ -30,6 +30,7 @@ export function ProductDetail({
   const openCart = useUI((s) => s.openCart);
   const toggle = useWishlist((s) => s.toggle);
   const wished = useWishlist((s) => s.ids.includes(product.id));
+  const chart = sizeChartForProduct(product);
 
   const stock = size ? product.sizes[size] : null;
   const lowStock = stock !== null && stock > 0 && stock <= 2;
@@ -134,24 +135,18 @@ export function ProductDetail({
                 <table className="w-full text-left text-sm">
                   <thead className="bg-mist font-display text-[10px] tracking-[0.14em]">
                     <tr>
-                      <th className="px-3 py-2">Size</th>
-                      <th className="px-3 py-2">Bust</th>
-                      <th className="px-3 py-2">Waist</th>
-                      <th className="px-3 py-2">Hip</th>
+                      {chart.columns.map((col) => (
+                        <th key={col} className="px-3 py-2">
+                          {col}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody className="text-muted">
-                    {[
-                      ["XS", "32", "24", "34"],
-                      ["S", "34", "26", "36"],
-                      ["M", "36", "28", "38"],
-                      ["L", "38", "30", "40"],
-                      ["XL", "40", "32", "42"],
-                      ["XXL", "42", "34", "44"],
-                    ].map((row) => (
+                    {chart.rows.map((row) => (
                       <tr key={row[0]} className="border-t border-line">
-                        {row.map((cell) => (
-                          <td key={cell} className="px-3 py-2">
+                        {row.map((cell, i) => (
+                          <td key={`${row[0]}-${i}`} className="px-3 py-2">
                             {cell}
                           </td>
                         ))}
@@ -159,6 +154,9 @@ export function ProductDetail({
                     ))}
                   </tbody>
                 </table>
+                <p className="border-t border-line px-3 py-2 text-xs text-muted">
+                  {chart.note}
+                </p>
               </div>
             )}
           </div>
@@ -210,19 +208,20 @@ export function ProductDetail({
             className="mt-8 border border-line p-4"
             onSubmit={(e) => {
               e.preventDefault();
-              if (/^\d{6}$/.test(pin)) {
-                setPinMsg(
-                  pin.startsWith("695")
-                    ? "Delivers to Trivandrum in 1–2 days"
-                    : "Ships across India in 3–6 days",
-                );
-              } else {
+              if (!/^\d{6}$/.test(pin)) {
                 setPinMsg("Enter a valid 6-digit PIN code");
+                return;
               }
+              setPinMsg(
+                "We ship across India. Trivandrum PIN codes are usually 1–2 days after packing; most other cities 3–6 days. Exact ETA is confirmed when your order is handed to the courier.",
+              );
             }}
           >
             <p className="font-display text-[11px] tracking-[0.16em]">
               Delivery check
+            </p>
+            <p className="mt-1 text-xs text-muted">
+              Free shipping above ₹1,999 · flat ₹99 below that within India.
             </p>
             <div className="mt-3 flex gap-2">
               <input
@@ -268,14 +267,14 @@ export function ProductDetail({
           >
             {size ? "Add to Bag" : "Select a size"}
           </Button>
-          <Link
-            href="/wishlist"
+          <button
+            type="button"
             onClick={() => toggle(product.id)}
             className="flex h-12 w-12 items-center justify-center border border-line"
             aria-label="Wishlist"
           >
             <Heart size={18} fill={wished ? "currentColor" : "none"} strokeWidth={1.5} />
-          </Link>
+          </button>
         </div>
       </div>
     </div>

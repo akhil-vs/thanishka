@@ -11,10 +11,7 @@ export const checkoutItemSchema = z.object({
 export const createCheckoutSchema = z.object({
   items: z.array(checkoutItemSchema).min(1).max(40),
   customerName: z.string().min(2).max(80),
-  customerEmail: z.preprocess(
-    (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
-    z.string().email().optional(),
-  ),
+  customerEmail: z.string().trim().email("Email is required for your receipt"),
   customerPhone: z.string().min(8).max(20),
   shippingLine1: z.string().min(3).max(120),
   shippingLine2: z.string().max(120).optional().nullable(),

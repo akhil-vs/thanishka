@@ -8,6 +8,7 @@ import { prisma } from "@/lib/db";
 import { asSizeMap, asStringArray } from "@/lib/admin/types";
 import { applyStockChange, type SizeKey } from "@/lib/admin/stock";
 import { normalizePhone } from "@/lib/auth/phone";
+import { revalidateCatalog } from "@/lib/catalog-revalidate";
 import {
   computeOrderTotals,
   type PricedLine,
@@ -386,6 +387,7 @@ export async function reserveStockForOrder(orderId: string) {
     where: { id: orderId },
     data: { stockReserved: true },
   });
+  revalidateCatalog();
 }
 
 export function serializeOrder(

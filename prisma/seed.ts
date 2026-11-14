@@ -11,13 +11,22 @@ if (existsSync(".env") && typeof process.loadEnvFile === "function") {
 const prisma = new PrismaClient();
 
 async function ensureShop() {
+  const phone = process.env.STORE_PHONE?.trim() || null;
+  const whatsapp = process.env.STORE_WHATSAPP?.trim() || phone;
   return prisma.shop.upsert({
     where: { slug: "thanishka" },
-    update: { name: "Thanishka", active: true },
+    update: {
+      name: "Thanishka",
+      active: true,
+      ...(phone ? { phone } : {}),
+      ...(whatsapp ? { whatsapp } : {}),
+    },
     create: {
       id: "shop_thanishka_default",
       slug: "thanishka",
       name: "Thanishka",
+      phone,
+      whatsapp,
       active: true,
     },
   });

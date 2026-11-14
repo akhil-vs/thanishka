@@ -285,3 +285,15 @@ model HeroSlide {
 
   @@map("hero_slides")
 }
+
+model NewsletterSubscriber {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  whatsappOptIn Boolean  @default(false) @map("whatsapp_opt_in")
+  phone         String?
+  source        String   @default("storefront")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("newsletter_subscribers")
+}
