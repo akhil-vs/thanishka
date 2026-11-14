@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import type { Role } from "@prisma/client";
+import { requireAuthSecret } from "./secrets";
 import type { AuthAudience, SessionClaims } from "./types";
 
 export const ADMIN_COOKIE = "thanishka_admin_session";
@@ -26,16 +27,28 @@ const MAX_AGE_BY_AUDIENCE: Record<AuthAudience, number> = {
 };
 
 function secretFor(audience: AuthAudience) {
-  const map: Record<AuthAudience, string | undefined> = {
-    admin: process.env.ADMIN_JWT_SECRET,
-    staff: process.env.STAFF_JWT_SECRET ?? process.env.ADMIN_JWT_SECRET,
-    customer:
-      process.env.CUSTOMER_JWT_SECRET ??
-      process.env.STAFF_JWT_SECRET ??
-      process.env.ADMIN_JWT_SECRET,
-  };
-  const secret = map[audience] ?? "thanishka-dev-admin-secret-change-me";
-  return new TextEncoder().encode(secret);
+  const map: Record<AuthAudience, { value: string | undefined; name: string }> =
+    {
+      admin: {
+        value: process.env.ADMIN_JWT_SECRET,
+        name: "ADMIN_JWT_SECRET",
+      },
+      staff: {
+        value: process.env.STAFF_JWT_SECRET ?? process.env.ADMIN_JWT_SECRET,
+        name: "STAFF_JWT_SECRET",
+      },
+      customer: {
+        value:
+          process.env.CUSTOMER_JWT_SECRET ??
+          process.env.STAFF_JWT_SECRET ??
+          process.env.ADMIN_JWT_SECRET,
+        name: "CUSTOMER_JWT_SECRET",
+      },
+    };
+  const entry = map[audience];
+  return new TextEncoder().encode(
+    requireAuthSecret(entry.value, entry.name),
+  );
 }
 
 export async function createSession(claims: SessionClaims) {

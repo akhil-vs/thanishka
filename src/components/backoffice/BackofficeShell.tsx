@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   BadgePercent,
+  ClipboardList,
   ImageIcon,
   LayoutDashboard,
   LogOut,
@@ -16,6 +17,7 @@ import { authFetch } from "@/lib/auth/client";
 
 const SECTIONS = [
   { path: "", label: "Dashboard", icon: LayoutDashboard },
+  { path: "/orders", label: "Orders", icon: ClipboardList },
   { path: "/stock", label: "Stock", icon: Warehouse },
   { path: "/products", label: "Products", icon: Package },
   { path: "/discounts", label: "Discounts", icon: BadgePercent },
