@@ -289,6 +289,18 @@ model HeroSlide {
   @@map("hero_slides")
 }
 
+/** Durable image bytes when Vercel Blob is not configured (ephemeral FS). */
+model UploadedImage {
+  id          String   @id @default(cuid())
+  pathname    String   @unique
+  contentType String   @map("content_type")
+  bytes       Bytes
+  byteSize    Int      @map("byte_size")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("uploaded_images")
+}
+
 enum FeedbackStatus {
   NEW
   REVIEWED

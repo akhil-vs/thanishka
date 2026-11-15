@@ -54,7 +54,8 @@ Backend is Next.js Route Handlers on the same Vercel project — no separate API
    - `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` — live keys in Production (`rzp_live_*`; staging may set `ALLOW_RAZORPAY_TEST_KEYS=true`)
    - `RAZORPAY_WEBHOOK_SECRET` — required in Production; point webhook to `/api/checkout/webhook` (`payment.captured`)
    - `ADMIN_EMAIL` / `ADMIN_PASSWORD` — optional seed overrides
-   - `BLOB_READ_WRITE_TOKEN` — from Vercel → Storage → Blob (admin image uploads on Products / Hero)
+   - `BLOB_READ_WRITE_TOKEN` — optional but preferred; from Vercel → Storage → Blob.
+     Without it, admin uploads on Vercel store image bytes in Postgres (`/api/media/:id`).
 6. Redeploy. `vercel.json` runs `scripts/vercel-build.sh`
    (`prisma generate` → `migrate deploy` → `db seed` → `next build`).
    The script remaps Marketplace URL aliases onto `DATABASE_URL` and fails clearly if Production has no DB URL.
@@ -93,7 +94,7 @@ Identity is a shared `User` model with `RoleAssignment` (`ADMIN`, `SHOP_OWNER`, 
 | **Hero images** | Manage homepage slider slides (feeds `/api/hero`) — file upload |
 | **Dashboard** | Units, low stock, recent movements, campaign counts |
 | **Analytics** | IST date-range GMV/orders trend, payment mix, bestsellers, cities, coupons, feedback & newsletter |
-| **Uploads** | `POST /api/admin/uploads` — JPEG/PNG/WebP/GIF (max 4 MB); Vercel Blob in production, `public/uploads` locally |
+| **Uploads** | `POST /api/admin/uploads` — JPEG/PNG/WebP/GIF (max 4 MB); Vercel Blob when configured, else Postgres on Vercel / `public/uploads` locally |
 
 ### Key API routes
 
@@ -108,7 +109,7 @@ Identity is a shared `User` model with `RoleAssignment` (`ADMIN`, `SHOP_OWNER`, 
 - `GET/POST /api/admin/offers` · `PATCH/DELETE /api/admin/offers/:id`
 - `GET/POST /api/admin/hero` · `PATCH/DELETE /api/admin/hero/:id`
 - `POST /api/admin/uploads` — multipart image upload for admin/studio
-- Public: `GET /api/hero` · `GET /api/offers` · `GET /api/feedback/public`
+- Public: `GET /api/media/:id` — serve Postgres-stored uploads · `GET /api/hero` · `GET /api/offers` · `GET /api/feedback/public`
 - Checkout: `POST /api/checkout/quote` · `POST /api/checkout/create` · `POST /api/checkout/verify` · `GET /api/checkout/orders/:id` · `POST /api/checkout/webhook`
 - Orders desk: `GET /api/admin/orders` · `GET/PATCH /api/admin/orders/:id`
 - Analytics: `GET /api/admin/analytics?from=&to=&compare=1` (IST day buckets)

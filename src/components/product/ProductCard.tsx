@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useId, useState } from "react";
 import { Heart, X } from "lucide-react";
+import { isAppHostedImageRef } from "@/lib/image-ref";
 import type { Product, Size } from "@/lib/products";
 import { formatINR, cn } from "@/lib/format";
 import { useCart } from "@/store/cart";
@@ -46,6 +47,7 @@ export function ProductCard({
             alt={product.name}
             fill
             priority={priority}
+            unoptimized={isAppHostedImageRef(product.images[0])}
             sizes="(max-width: 768px) 50vw, 25vw"
             className="product-card-primary object-cover"
           />
@@ -53,6 +55,7 @@ export function ProductCard({
             src={product.images[1]}
             alt=""
             fill
+            unoptimized={isAppHostedImageRef(product.images[1])}
             sizes="(max-width: 768px) 50vw, 25vw"
             className="product-card-secondary object-cover"
           />

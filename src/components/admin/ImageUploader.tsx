@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/Button";
 import { adminUpload } from "@/lib/admin/client";
+import { isAppHostedImageRef } from "@/lib/image-ref";
 
 type Props = {
   values: string[];
@@ -97,7 +98,7 @@ export function ImageUploader({
                   src={url}
                   alt={`Upload ${index + 1}`}
                   fill
-                  unoptimized={url.startsWith("/uploads/")}
+                  unoptimized={isAppHostedImageRef(url)}
                   className="object-cover"
                   sizes="(max-width:768px) 100vw, 33vw"
                 />

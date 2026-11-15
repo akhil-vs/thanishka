@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ButtonLink } from "@/components/ui/Button";
 import { OrderFeedbackForm } from "@/components/feedback/OrderFeedbackForm";
 import { formatINR } from "@/lib/format";
+import { isAppHostedImageRef } from "@/lib/image-ref";
 import { authFetch } from "@/lib/auth/client";
 import type { SerializedOrder } from "@/lib/checkout/types";
 
@@ -128,6 +129,7 @@ export function OrderConfirmation({
                   src={item.image}
                   alt={item.name}
                   fill
+                  unoptimized={isAppHostedImageRef(item.image)}
                   className="object-cover"
                   sizes="72px"
                 />

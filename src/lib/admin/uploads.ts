@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { put } from "@vercel/blob";
+import { prisma } from "@/lib/db";
 
 export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 
@@ -47,7 +48,7 @@ export function buildUploadPathname(file: File) {
 export async function storeUploadedImage(file: File): Promise<{
   url: string;
   pathname: string;
-  storage: "blob" | "local";
+  storage: "blob" | "local" | "database";
 }> {
   const pathname = buildUploadPathname(file);
 
@@ -60,16 +61,29 @@ export async function storeUploadedImage(file: File): Promise<{
     return { url: blob.url, pathname: blob.pathname, storage: "blob" };
   }
 
-  if (process.env.VERCEL) {
-    throw new Error(
-      "Image uploads require BLOB_READ_WRITE_TOKEN on Vercel. Connect Blob storage in the Vercel dashboard.",
-    );
+  // Local disk only works outside Vercel (serverless FS is ephemeral).
+  if (!process.env.VERCEL) {
+    const absolute = path.join(process.cwd(), "public", pathname);
+    await mkdir(path.dirname(absolute), { recursive: true });
+    const buffer = Buffer.from(await file.arrayBuffer());
+    await writeFile(absolute, buffer);
+    return { url: `/${pathname}`, pathname, storage: "local" };
   }
 
-  const absolute = path.join(process.cwd(), "public", pathname);
-  await mkdir(path.dirname(absolute), { recursive: true });
+  // Durable fallback on Vercel when Blob is not connected yet.
   const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(absolute, buffer);
+  const row = await prisma.uploadedImage.create({
+    data: {
+      pathname,
+      contentType: file.type || "application/octet-stream",
+      bytes: buffer,
+      byteSize: buffer.byteLength,
+    },
+  });
 
-  return { url: `/${pathname}`, pathname, storage: "local" };
+  return {
+    url: `/api/media/${row.id}`,
+    pathname,
+    storage: "database",
+  };
 }

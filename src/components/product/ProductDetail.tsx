@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useMemo, useState } from "react";
 import { Heart } from "lucide-react";
+import { isAppHostedImageRef } from "@/lib/image-ref";
 import type { Product, Size } from "@/lib/products";
 import { sizeChartForProduct } from "@/lib/size-charts";
 import { formatINR, cn } from "@/lib/format";
@@ -50,6 +51,7 @@ export function ProductDetail({
               alt={product.name}
               fill
               priority
+              unoptimized={isAppHostedImageRef(product.images[active])}
               sizes="(max-width: 768px) 100vw, 50vw"
               className="object-cover transition duration-500 hover:scale-[1.03]"
             />
@@ -64,7 +66,14 @@ export function ProductDetail({
                   i === active ? "border-charcoal" : "border-transparent",
                 )}
               >
-                <Image src={img} alt="" fill className="object-cover" sizes="64px" />
+                <Image
+                  src={img}
+                  alt=""
+                  fill
+                  unoptimized={isAppHostedImageRef(img)}
+                  className="object-cover"
+                  sizes="64px"
+                />
               </button>
             ))}
           </div>

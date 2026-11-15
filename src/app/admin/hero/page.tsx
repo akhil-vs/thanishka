@@ -6,6 +6,7 @@ import { ImageUploader } from "@/components/admin/ImageUploader";
 import { Button } from "@/components/ui/Button";
 import { adminFetch } from "@/lib/admin/client";
 import { useAdminResource } from "@/lib/admin/useAdminResource";
+import { isAppHostedImageRef } from "@/lib/image-ref";
 
 type Slide = {
   id: string;
@@ -153,7 +154,7 @@ export default function AdminHeroPage() {
                 src={s.imageUrl}
                 alt={s.title}
                 fill
-                unoptimized={s.imageUrl.startsWith("/uploads/")}
+                unoptimized={isAppHostedImageRef(s.imageUrl)}
                 className="object-cover"
                 sizes="(max-width:768px) 100vw, 50vw"
               />
