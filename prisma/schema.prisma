@@ -289,6 +289,17 @@ model HeroSlide {
   @@map("hero_slides")
 }
 
+model Announcement {
+  id        String   @id @default(cuid())
+  message   String
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("announcements")
+}
+
 /** Durable image bytes when Vercel Blob is not configured (ephemeral FS). */
 model UploadedImage {
   id          String   @id @default(cuid())

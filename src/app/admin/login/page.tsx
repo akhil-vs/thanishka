@@ -39,7 +39,7 @@ export default function AdminLoginPage() {
       </p>
       <h1 className="mt-3 font-display text-3xl tracking-[0.14em]">Admin sign in</h1>
       <p className="mt-3 font-serif text-muted">
-        Manage stock, discounts, offers and hero images.
+        Manage stock, discounts, offers, top scroll and hero images.
       </p>
       <form onSubmit={onSubmit} className="mt-8 space-y-3">
         <input
