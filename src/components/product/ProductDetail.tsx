@@ -1,8 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
-import { Heart } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight, Heart } from "lucide-react";
 import { isAppHostedImageRef } from "@/lib/image-ref";
 import type { Product, Size } from "@/lib/products";
 import { sizeChartForProduct } from "@/lib/size-charts";
@@ -14,6 +14,7 @@ import { useUI } from "@/store/ui";
 import { ProductCard } from "@/components/product/ProductCard";
 
 const sizeOrder: Size[] = ["XS", "S", "M", "L", "XL", "XXL"];
+const SWIPE_THRESHOLD = 48;
 
 export function ProductDetail({
   product,
@@ -32,6 +33,9 @@ export function ProductDetail({
   const toggle = useWishlist((s) => s.toggle);
   const wished = useWishlist((s) => s.ids.includes(product.id));
   const chart = sizeChartForProduct(product);
+  const imageCount = product.images.length;
+  const hasMultipleImages = imageCount > 1;
+  const touchStartX = useRef<number | null>(null);
 
   const stock = size ? product.sizes[size] : null;
   const lowStock = stock !== null && stock > 0 && stock <= 2;
@@ -41,26 +45,102 @@ export function ProductDetail({
     [size, stock],
   );
 
+  function goTo(index: number) {
+    if (imageCount === 0) return;
+    setActive(((index % imageCount) + imageCount) % imageCount);
+  }
+
+  function showPrev() {
+    goTo(active - 1);
+  }
+
+  function showNext() {
+    goTo(active + 1);
+  }
+
   return (
     <div className="pb-28 md:pb-0">
       <div className="container-page grid gap-8 py-8 md:grid-cols-2 md:gap-12 md:py-12">
         <div>
-          <div className="relative aspect-[3/4] overflow-hidden bg-sand">
+          <div
+            className="relative aspect-[3/4] overflow-hidden bg-sand outline-none"
+            tabIndex={hasMultipleImages ? 0 : undefined}
+            role={hasMultipleImages ? "region" : undefined}
+            aria-roledescription={hasMultipleImages ? "carousel" : undefined}
+            aria-label={
+              hasMultipleImages
+                ? `${product.name} images, ${active + 1} of ${imageCount}`
+                : undefined
+            }
+            onKeyDown={(e) => {
+              if (!hasMultipleImages) return;
+              if (e.key === "ArrowLeft") {
+                e.preventDefault();
+                showPrev();
+              } else if (e.key === "ArrowRight") {
+                e.preventDefault();
+                showNext();
+              }
+            }}
+            onTouchStart={(e) => {
+              if (!hasMultipleImages) return;
+              touchStartX.current = e.changedTouches[0]?.clientX ?? null;
+            }}
+            onTouchEnd={(e) => {
+              if (!hasMultipleImages || touchStartX.current == null) return;
+              const endX = e.changedTouches[0]?.clientX;
+              if (endX == null) return;
+              const delta = endX - touchStartX.current;
+              touchStartX.current = null;
+              if (Math.abs(delta) < SWIPE_THRESHOLD) return;
+              if (delta > 0) showPrev();
+              else showNext();
+            }}
+          >
             <Image
               src={product.images[active]}
-              alt={product.name}
+              alt={`${product.name} — image ${active + 1} of ${imageCount}`}
               fill
               priority
               unoptimized={isAppHostedImageRef(product.images[active])}
               sizes="(max-width: 768px) 100vw, 50vw"
               className="object-cover transition duration-500 hover:scale-[1.03]"
+              draggable={false}
             />
+            {hasMultipleImages && (
+              <>
+                <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-between px-2 md:px-3">
+                  <button
+                    type="button"
+                    onClick={showPrev}
+                    aria-label="Previous image"
+                    className="pointer-events-auto flex h-10 w-10 items-center justify-center border border-line bg-ivory/90 text-charcoal transition hover:bg-ivory"
+                  >
+                    <ChevronLeft size={20} strokeWidth={1.5} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={showNext}
+                    aria-label="Next image"
+                    className="pointer-events-auto flex h-10 w-10 items-center justify-center border border-line bg-ivory/90 text-charcoal transition hover:bg-ivory"
+                  >
+                    <ChevronRight size={20} strokeWidth={1.5} />
+                  </button>
+                </div>
+                <p className="pointer-events-none absolute bottom-3 right-3 z-10 bg-ivory/90 px-2 py-1 font-display text-[10px] tracking-[0.14em] text-charcoal">
+                  {active + 1} / {imageCount}
+                </p>
+              </>
+            )}
           </div>
           <div className="mt-3 flex gap-2 overflow-x-auto">
             {product.images.map((img, i) => (
               <button
                 key={img}
+                type="button"
                 onClick={() => setActive(i)}
+                aria-label={`Show image ${i + 1}`}
+                aria-current={i === active ? "true" : undefined}
                 className={cn(
                   "relative h-20 w-16 shrink-0 overflow-hidden border",
                   i === active ? "border-charcoal" : "border-transparent",
