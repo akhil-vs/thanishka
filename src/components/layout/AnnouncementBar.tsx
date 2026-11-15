@@ -1,6 +1,8 @@
 "use client";
 
-const messages = [
+import { useEffect, useState } from "react";
+
+const fallbackMessages = [
   "Free shipping above ₹1,999 across India",
   "New: Onam Edit — shop kasavu-ready looks",
   "Visit our boutique · Vellayambalam, Trivandrum",
@@ -8,7 +10,27 @@ const messages = [
 ];
 
 export function AnnouncementBar() {
-  const loop = [...messages, ...messages];
+  const [messages, setMessages] = useState<string[] | null>(null);
+  const display = messages ?? fallbackMessages;
+
+  useEffect(() => {
+    fetch("/api/announcements")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data.messages)) {
+          setMessages(data.messages);
+        }
+      })
+      .catch(() => {
+        /* keep fallback until load succeeds */
+      });
+  }, []);
+
+  if (display.length === 0) {
+    return null;
+  }
+
+  const loop = [...display, ...display];
 
   return (
     <div className="relative z-50 overflow-hidden border-b border-line bg-emerald text-ivory">

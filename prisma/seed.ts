@@ -326,6 +326,35 @@ async function main() {
     console.log("Seeded hero slides");
   }
 
+  const announcementCount = await prisma.announcement.count();
+  if (announcementCount === 0) {
+    await prisma.announcement.createMany({
+      data: [
+        {
+          message: "Free shipping above ₹1,999 across India",
+          active: true,
+          sortOrder: 0,
+        },
+        {
+          message: "New: Onam Edit — shop kasavu-ready looks",
+          active: true,
+          sortOrder: 1,
+        },
+        {
+          message: "Visit our boutique · Vellayambalam, Trivandrum",
+          active: true,
+          sortOrder: 2,
+        },
+        {
+          message: "Welcome offer · THANISHKA10 for 10% off first order",
+          active: true,
+          sortOrder: 3,
+        },
+      ],
+    });
+    console.log("Seeded announcement scroll messages");
+  }
+
   const customer = await ensureDemoCustomer();
   if (customer) {
     await ensureDemoFeedback(customer.id);

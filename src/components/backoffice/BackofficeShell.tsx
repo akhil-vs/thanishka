@@ -12,6 +12,7 @@ import {
   MessageSquareQuote,
   Package,
   Sparkles,
+  ScrollText,
   Warehouse,
 } from "lucide-react";
 import { cn } from "@/lib/format";
@@ -26,6 +27,7 @@ const SECTIONS = [
   { path: "/products", label: "Products", icon: Package },
   { path: "/discounts", label: "Discounts", icon: BadgePercent },
   { path: "/offers", label: "Offers", icon: Sparkles },
+  { path: "/announcements", label: "Top scroll", icon: ScrollText },
   { path: "/hero", label: "Hero images", icon: ImageIcon },
 ] as const;
 

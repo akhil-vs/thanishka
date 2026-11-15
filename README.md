@@ -91,6 +91,7 @@ Identity is a shared `User` model with `RoleAssignment` (`ADMIN`, `SHOP_OWNER`, 
 | **Products** | Create catalogue items with image upload, archive/activate |
 | **Discounts** | Create/enable/disable/delete coupon codes |
 | **Offers** | Manage promotional banners (feeds homepage offer) |
+| **Top scroll** | Manage announcement-bar marquee messages (feeds `/api/announcements`) |
 | **Hero images** | Manage homepage slider slides (feeds `/api/hero`) — file upload |
 | **Dashboard** | Units, low stock, recent movements, campaign counts |
 | **Analytics** | IST date-range GMV/orders trend, payment mix, bestsellers, cities, coupons, feedback & newsletter |
@@ -107,9 +108,10 @@ Identity is a shared `User` model with `RoleAssignment` (`ADMIN`, `SHOP_OWNER`, 
 - `GET/POST /api/admin/products` · `PATCH/DELETE /api/admin/products/:id`
 - `GET/POST /api/admin/discounts` · `PATCH/DELETE /api/admin/discounts/:id`
 - `GET/POST /api/admin/offers` · `PATCH/DELETE /api/admin/offers/:id`
+- `GET/POST /api/admin/announcements` · `PATCH/DELETE /api/admin/announcements/:id`
 - `GET/POST /api/admin/hero` · `PATCH/DELETE /api/admin/hero/:id`
 - `POST /api/admin/uploads` — multipart image upload for admin/studio
-- Public: `GET /api/media/:id` — serve Postgres-stored uploads · `GET /api/hero` · `GET /api/offers` · `GET /api/feedback/public`
+- Public: `GET /api/media/:id` — serve Postgres-stored uploads · `GET /api/hero` · `GET /api/offers` · `GET /api/announcements` · `GET /api/feedback/public`
 - Checkout: `POST /api/checkout/quote` · `POST /api/checkout/create` · `POST /api/checkout/verify` · `GET /api/checkout/orders/:id` · `POST /api/checkout/webhook`
 - Orders desk: `GET /api/admin/orders` · `GET/PATCH /api/admin/orders/:id`
 - Analytics: `GET /api/admin/analytics?from=&to=&compare=1` (IST day buckets)

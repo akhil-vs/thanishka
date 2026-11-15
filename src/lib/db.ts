@@ -28,6 +28,7 @@ export type {
   Discount,
   Offer,
   HeroSlide,
+  Announcement,
   StockMovement,
   Order,
   OrderItem,
