@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ButtonLink } from "@/components/ui/Button";
 import { CheckoutForm } from "@/components/cart/CheckoutForm";
 import { formatINR } from "@/lib/format";
+import { isAppHostedImageRef } from "@/lib/image-ref";
 import { useCart } from "@/store/cart";
 
 export default function CartPage() {
@@ -36,6 +37,7 @@ export default function CartPage() {
                     src={item.image}
                     alt={item.name}
                     fill
+                    unoptimized={isAppHostedImageRef(item.image)}
                     className="object-cover"
                     sizes="96px"
                   />

@@ -27,7 +27,7 @@ export async function adminUpload(file: File) {
   return adminFetch<{
     url: string;
     pathname: string;
-    storage: "blob" | "local";
+    storage: "blob" | "local" | "database";
   }>("/api/admin/uploads", {
     method: "POST",
     body,

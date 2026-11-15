@@ -4,6 +4,7 @@ import Image from "next/image";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { ButtonLink } from "@/components/ui/Button";
+import { isAppHostedImageRef } from "@/lib/image-ref";
 
 type Slide = {
   id?: string;
@@ -70,6 +71,7 @@ export function Hero() {
             alt=""
             fill
             priority
+            unoptimized={isAppHostedImageRef(slide.image)}
             className="hero-parallax object-cover object-center"
             sizes="100vw"
           />

@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { formatINR } from "@/lib/format";
+import { isAppHostedImageRef } from "@/lib/image-ref";
 import { authFetch } from "@/lib/auth/client";
 import { useCart } from "@/store/cart";
 import { useUI } from "@/store/ui";
@@ -144,6 +145,7 @@ export function CartDrawer() {
                           src={item.image}
                           alt={item.name}
                           fill
+                          unoptimized={isAppHostedImageRef(item.image)}
                           className="object-cover"
                           sizes="80px"
                         />
