@@ -17,7 +17,8 @@ export default function PrivacyPage() {
           We do not store full card numbers on our servers.
         </p>
         <p>
-          Contact hello@thanishka.store to access, correct or delete your data.
+          Contact thanishkatrivandrumofficial@gmail.com to access, correct or
+          delete your data.
         </p>
       </div>
     </div>

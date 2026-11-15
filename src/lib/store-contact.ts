@@ -48,7 +48,7 @@ export function getStoreContact(): StoreContact {
     email:
       process.env.NEXT_PUBLIC_STORE_EMAIL?.trim() ||
       process.env.STORE_EMAIL?.trim() ||
-      "hello@thanishka.store",
+      "thanishkatrivandrumofficial@gmail.com",
     addressLine:
       process.env.NEXT_PUBLIC_STORE_ADDRESS?.trim() ||
       process.env.STORE_ADDRESS?.trim() ||
