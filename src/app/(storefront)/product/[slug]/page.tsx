@@ -21,9 +21,24 @@ export async function generateMetadata({
   const { slug } = await params;
   const product = await getCatalogProduct(slug);
   if (!product) return { title: "Product" };
+  const title = product.name;
+  const description = product.description;
+  const image = product.images[0];
   return {
-    title: product.name,
-    description: product.description,
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      images: image ? [{ url: image, alt: product.name }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: image ? [image] : undefined,
+    },
   };
 }
 

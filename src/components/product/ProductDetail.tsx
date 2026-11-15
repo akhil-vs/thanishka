@@ -12,6 +12,7 @@ import { useCart } from "@/store/cart";
 import { useWishlist } from "@/store/wishlist";
 import { useUI } from "@/store/ui";
 import { ProductCard } from "@/components/product/ProductCard";
+import { ShareProductButton } from "@/components/product/ShareProductButton";
 
 const sizeOrder: Size[] = ["XS", "S", "M", "L", "XL", "XXL"];
 
@@ -182,6 +183,7 @@ export function ProductDetail({
             >
               Add to Bag
             </Button>
+            <ShareProductButton name={product.name} price={product.price} />
             <button
               aria-label="Wishlist"
               onClick={() => toggle(product.id)}
@@ -276,6 +278,7 @@ export function ProductDetail({
           >
             {size ? "Add to Bag" : "Select a size"}
           </Button>
+          <ShareProductButton name={product.name} price={product.price} />
           <button
             type="button"
             onClick={() => toggle(product.id)}
