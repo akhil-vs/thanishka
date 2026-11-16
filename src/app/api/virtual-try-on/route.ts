@@ -8,7 +8,6 @@ import {
 import { generateVirtualTryOnImage } from "@/lib/virtual-try-on/openrouter";
 import { generateVirtualTryOnPrompt } from "@/lib/virtual-try-on/prompts";
 
-export const runtime = "nodejs";
 /** Image generation can exceed the default serverless budget. */
 export const maxDuration = 60;
 
