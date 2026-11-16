@@ -53,13 +53,6 @@ const emptyForm = {
 
 type FormState = typeof emptyForm;
 
-type PricingDraft = {
-  productId: string;
-  name: string;
-  price: string;
-  compareAt: string;
-};
-
 function parseRupees(value: string): number | null {
   const trimmed = value.trim().replace(/,/g, "");
   if (!trimmed) return null;
@@ -241,8 +234,6 @@ export default function AdminProductsPage() {
   const products = data?.products ?? [];
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [pricingDraft, setPricingDraft] = useState<PricingDraft | null>(null);
-  const [pricingBusy, setPricingBusy] = useState(false);
   const [message, setMessage] = useState("");
 
   async function onSubmit(e: FormEvent) {
@@ -277,7 +268,6 @@ export default function AdminProductsPage() {
       }
       setForm(emptyForm);
       setEditingId(null);
-      setPricingDraft(null);
       reload();
     } catch (err) {
       setError(
@@ -293,7 +283,6 @@ export default function AdminProductsPage() {
   function startEdit(product: Product) {
     setEditingId(product.id);
     setForm(productToForm(product));
-    setPricingDraft(null);
     setMessage("");
     setError("");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -304,58 +293,6 @@ export default function AdminProductsPage() {
     setForm(emptyForm);
     setMessage("");
     setError("");
-  }
-
-  function openPricing(product: Product) {
-    setPricingDraft({
-      productId: product.id,
-      name: product.name,
-      price: String(product.price),
-      compareAt: product.compareAt != null ? String(product.compareAt) : "",
-    });
-    setMessage("");
-    setError("");
-  }
-
-  async function savePricing(e: FormEvent) {
-    e.preventDefault();
-    if (!pricingDraft) return;
-    setError("");
-    setMessage("");
-    const issue = pricingError(pricingDraft.price, pricingDraft.compareAt);
-    if (issue) {
-      setError(issue);
-      return;
-    }
-    const price = parseRupees(pricingDraft.price)!;
-    const compareAt = pricingDraft.compareAt.trim()
-      ? parseRupees(pricingDraft.compareAt)
-      : null;
-    setPricingBusy(true);
-    try {
-      await adminFetch(`/api/admin/products/${pricingDraft.productId}`, {
-        method: "PATCH",
-        body: JSON.stringify({
-          price,
-          compareAt,
-          onSale: Boolean(compareAt != null && compareAt > price),
-        }),
-      });
-      setMessage(`Price updated for ${pricingDraft.name}.`);
-      setPricingDraft(null);
-      if (editingId === pricingDraft.productId) {
-        setForm((f) => ({
-          ...f,
-          price: String(price),
-          compareAt: compareAt != null ? String(compareAt) : "",
-        }));
-      }
-      reload();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Price update failed");
-    } finally {
-      setPricingBusy(false);
-    }
   }
 
   async function toggleActive(product: Product) {
@@ -377,47 +314,13 @@ export default function AdminProductsPage() {
         Products
       </h1>
       <p className="mt-2 font-serif text-muted">
-        Catalogue management — create, edit, set selling price or MRP discount,
-        and archive styles. Use Stock to adjust size quantities after create.
+        Catalogue management — create, edit (including selling price and MRP
+        discount), and archive styles. Use Stock to adjust size quantities
+        after create.
       </p>
 
       {error ? <p className="mt-4 text-sm text-sale">{error}</p> : null}
       {message ? <p className="mt-4 text-sm text-emerald">{message}</p> : null}
-
-      {pricingDraft ? (
-        <form
-          onSubmit={savePricing}
-          className="mt-8 grid gap-3 border border-line bg-ivory p-5 md:grid-cols-2"
-        >
-          <h2 className="font-display text-[11px] tracking-[0.16em] md:col-span-2">
-            Set price — {pricingDraft.name}
-          </h2>
-          <PricingFields
-            idPrefix="quick"
-            price={pricingDraft.price}
-            compareAt={pricingDraft.compareAt}
-            onPriceChange={(price) =>
-              setPricingDraft((d) => (d ? { ...d, price } : d))
-            }
-            onCompareAtChange={(compareAt) =>
-              setPricingDraft((d) => (d ? { ...d, compareAt } : d))
-            }
-          />
-          <div className="flex flex-wrap gap-2 md:col-span-2">
-            <Button type="submit" disabled={pricingBusy}>
-              {pricingBusy ? "Saving…" : "Save price"}
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={pricingBusy}
-              onClick={() => setPricingDraft(null)}
-            >
-              Cancel
-            </Button>
-          </div>
-        </form>
-      ) : null}
 
       <form
         onSubmit={onSubmit}
@@ -585,14 +488,6 @@ export default function AdminProductsPage() {
                 </td>
                 <td className="px-3 py-3">
                   <div className="flex flex-wrap gap-2">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="px-3 py-2"
-                      onClick={() => openPricing(p)}
-                    >
-                      Set price
-                    </Button>
                     <Button
                       type="button"
                       variant="secondary"
