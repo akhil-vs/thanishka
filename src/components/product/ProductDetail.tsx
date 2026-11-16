@@ -13,6 +13,7 @@ import { useWishlist } from "@/store/wishlist";
 import { useUI } from "@/store/ui";
 import { ProductCard } from "@/components/product/ProductCard";
 import { ShareProductButton } from "@/components/product/ShareProductButton";
+import { VirtualTryOn } from "@/components/product/VirtualTryOn";
 
 const sizeOrder: Size[] = ["XS", "S", "M", "L", "XL", "XXL"];
 const SWIPE_THRESHOLD = 48;
@@ -275,6 +276,8 @@ export function ProductDetail({
               <Heart size={18} fill={wished ? "currentColor" : "none"} strokeWidth={1.5} />
             </button>
           </div>
+
+          <VirtualTryOn product={product} />
 
           <dl className="mt-10 space-y-4 border-t border-line pt-6 text-sm">
             <div className="flex justify-between gap-4">
