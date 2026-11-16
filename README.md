@@ -88,7 +88,7 @@ Identity is a shared `User` model with `RoleAssignment` (`ADMIN`, `SHOP_OWNER`, 
 | Area | Capabilities |
 | --- | --- |
 | **Stock** | Single size adjust/set + bulk CSV-style intake + movement log |
-| **Products** | Create catalogue items with image upload, archive/activate |
+| **Products** | Create/edit catalogue items, set selling price + MRP discount, image upload, archive/activate |
 | **Discounts** | Create/enable/disable/delete coupon codes |
 | **Offers** | Manage promotional banners (feeds homepage offer) |
 | **Top scroll** | Manage announcement-bar marquee messages (feeds `/api/announcements`) |

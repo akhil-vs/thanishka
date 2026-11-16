@@ -15,6 +15,39 @@ export const imageRefSchema = z
   .min(1)
   .refine(isImageRef, { message: "Invalid image URL" });
 
+export function assertProductPricing(
+  price: number,
+  compareAt: number | null | undefined,
+) {
+  if (compareAt != null && compareAt > 0 && compareAt <= price) {
+    throw new Error(
+      "MRP / original price must be higher than the selling price",
+    );
+  }
+}
+
+/** Selling price customers pay, plus optional MRP for strikethrough discount. */
+export const productPricingSchema = z
+  .object({
+    price: z.number().int().positive(),
+    compareAt: z.number().int().positive().nullable().optional(),
+    onSale: z.boolean().optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (
+      value.compareAt != null &&
+      value.compareAt > 0 &&
+      value.compareAt <= value.price
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["compareAt"],
+        message: "MRP / original price must be higher than the selling price",
+      });
+    }
+  });
+
+/** Base product fields — keep refinements off this so `.partial()` works for PATCH. */
 export const productInputSchema = z.object({
   name: z.string().min(2),
   slug: z.string().min(2).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
