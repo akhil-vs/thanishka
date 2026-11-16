@@ -33,7 +33,7 @@ const emptyForm = {
   slug: "",
   category: "Party & Western",
   categorySlug: "party-western",
-  price: 2999,
+  price: "2999",
   compareAt: "",
   colors: "Black",
   fabric: "Crepe",
@@ -53,13 +53,43 @@ const emptyForm = {
 
 type FormState = typeof emptyForm;
 
+type PricingDraft = {
+  productId: string;
+  name: string;
+  price: string;
+  compareAt: string;
+};
+
+function parseRupees(value: string): number | null {
+  const trimmed = value.trim().replace(/,/g, "");
+  if (!trimmed) return null;
+  const n = Number(trimmed);
+  if (!Number.isFinite(n) || !Number.isInteger(n) || n <= 0) return null;
+  return n;
+}
+
+function pricingError(priceRaw: string, compareAtRaw: string): string | null {
+  const price = parseRupees(priceRaw);
+  if (price == null) return "Enter a valid selling price in whole rupees.";
+  const compareAt = compareAtRaw.trim()
+    ? parseRupees(compareAtRaw)
+    : null;
+  if (compareAtRaw.trim() && compareAt == null) {
+    return "Enter a valid MRP in whole rupees, or leave it blank.";
+  }
+  if (compareAt != null && compareAt <= price) {
+    return "MRP / original price must be higher than the selling price.";
+  }
+  return null;
+}
+
 function productToForm(p: Product): FormState {
   return {
     name: p.name,
     slug: p.slug,
     category: p.category,
     categorySlug: p.categorySlug,
-    price: p.price,
+    price: String(p.price),
     compareAt: p.compareAt != null ? String(p.compareAt) : "",
     colors: p.colors.join(", "),
     fabric: p.fabric,
@@ -79,13 +109,17 @@ function productToForm(p: Product): FormState {
 }
 
 function formPayload(form: FormState, includeSizes: boolean) {
+  const price = parseRupees(form.price);
+  const compareAt = form.compareAt.trim()
+    ? parseRupees(form.compareAt)
+    : null;
   const base = {
     name: form.name,
     slug: form.slug,
     category: form.category,
     categorySlug: form.categorySlug,
-    price: Number(form.price),
-    compareAt: form.compareAt ? Number(form.compareAt) : null,
+    price: price ?? 0,
+    compareAt,
     colors: form.colors.split(",").map((s) => s.trim()).filter(Boolean),
     fabric: form.fabric,
     occasion: form.occasion
@@ -97,7 +131,7 @@ function formPayload(form: FormState, includeSizes: boolean) {
     images: form.images,
     isNew: form.isNew,
     featured: form.featured,
-    onSale: Boolean(form.compareAt),
+    onSale: Boolean(compareAt != null && price != null && compareAt > price),
   };
   if (!includeSizes) return base;
   return {
@@ -113,6 +147,93 @@ function formPayload(form: FormState, includeSizes: boolean) {
   };
 }
 
+function PricingFields({
+  price,
+  compareAt,
+  onPriceChange,
+  onCompareAtChange,
+  idPrefix,
+}: {
+  price: string;
+  compareAt: string;
+  onPriceChange: (value: string) => void;
+  onCompareAtChange: (value: string) => void;
+  idPrefix: string;
+}) {
+  const parsedPrice = parseRupees(price);
+  const parsedCompare = compareAt.trim() ? parseRupees(compareAt) : null;
+  const onSale =
+    parsedPrice != null &&
+    parsedCompare != null &&
+    parsedCompare > parsedPrice;
+
+  return (
+    <div className="grid gap-3 border border-line bg-sand/20 p-4 md:col-span-2 md:grid-cols-2">
+      <div className="md:col-span-2">
+        <h3 className="font-display text-[11px] tracking-[0.16em]">
+          Pricing
+        </h3>
+        <p className="mt-1 font-serif text-sm text-muted">
+          Selling price is what customers pay. Add an MRP only when you want a
+          strikethrough discount on the storefront.
+        </p>
+      </div>
+      <label className="block text-sm" htmlFor={`${idPrefix}-price`}>
+        <span className="mb-1 block font-display text-[9px] tracking-[0.14em] text-muted">
+          Selling price (₹)
+        </span>
+        <input
+          id={`${idPrefix}-price`}
+          type="number"
+          inputMode="numeric"
+          min={1}
+          step={1}
+          value={price}
+          onChange={(e) => onPriceChange(e.target.value)}
+          className="w-full border border-line bg-ivory px-3 py-2"
+          required
+        />
+      </label>
+      <label className="block text-sm" htmlFor={`${idPrefix}-mrp`}>
+        <span className="mb-1 block font-display text-[9px] tracking-[0.14em] text-muted">
+          MRP / original (₹) — optional
+        </span>
+        <input
+          id={`${idPrefix}-mrp`}
+          type="number"
+          inputMode="numeric"
+          min={1}
+          step={1}
+          value={compareAt}
+          onChange={(e) => onCompareAtChange(e.target.value)}
+          className="w-full border border-line bg-ivory px-3 py-2"
+          placeholder="Leave blank for no discount"
+        />
+      </label>
+      <div className="font-serif text-sm text-muted md:col-span-2">
+        {onSale && parsedPrice != null && parsedCompare != null ? (
+          <p>
+            Storefront preview:{" "}
+            <span className="text-charcoal">{formatINR(parsedPrice)}</span>{" "}
+            <span className="line-through">{formatINR(parsedCompare)}</span>
+            <span className="ml-2 font-display text-[9px] tracking-[0.14em] text-sale">
+              ON SALE
+            </span>
+          </p>
+        ) : parsedPrice != null ? (
+          <p>
+            Storefront preview:{" "}
+            <span className="text-charcoal">{formatINR(parsedPrice)}</span>
+            <span className="ml-2 text-muted">· no discount</span>
+          </p>
+        ) : (
+          <p>Enter a selling price to preview.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function AdminProductsPage() {
   const { data, error, setError, reload } = useAdminResource<{
     products: Product[];
@@ -120,12 +241,19 @@ export default function AdminProductsPage() {
   const products = data?.products ?? [];
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [pricingDraft, setPricingDraft] = useState<PricingDraft | null>(null);
+  const [pricingBusy, setPricingBusy] = useState(false);
   const [message, setMessage] = useState("");
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
     setMessage("");
+    const priceIssue = pricingError(form.price, form.compareAt);
+    if (priceIssue) {
+      setError(priceIssue);
+      return;
+    }
     if (form.images.length < 2) {
       setError("Upload at least 2 product images.");
       return;
@@ -149,6 +277,7 @@ export default function AdminProductsPage() {
       }
       setForm(emptyForm);
       setEditingId(null);
+      setPricingDraft(null);
       reload();
     } catch (err) {
       setError(
@@ -164,6 +293,7 @@ export default function AdminProductsPage() {
   function startEdit(product: Product) {
     setEditingId(product.id);
     setForm(productToForm(product));
+    setPricingDraft(null);
     setMessage("");
     setError("");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -174,6 +304,58 @@ export default function AdminProductsPage() {
     setForm(emptyForm);
     setMessage("");
     setError("");
+  }
+
+  function openPricing(product: Product) {
+    setPricingDraft({
+      productId: product.id,
+      name: product.name,
+      price: String(product.price),
+      compareAt: product.compareAt != null ? String(product.compareAt) : "",
+    });
+    setMessage("");
+    setError("");
+  }
+
+  async function savePricing(e: FormEvent) {
+    e.preventDefault();
+    if (!pricingDraft) return;
+    setError("");
+    setMessage("");
+    const issue = pricingError(pricingDraft.price, pricingDraft.compareAt);
+    if (issue) {
+      setError(issue);
+      return;
+    }
+    const price = parseRupees(pricingDraft.price)!;
+    const compareAt = pricingDraft.compareAt.trim()
+      ? parseRupees(pricingDraft.compareAt)
+      : null;
+    setPricingBusy(true);
+    try {
+      await adminFetch(`/api/admin/products/${pricingDraft.productId}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          price,
+          compareAt,
+          onSale: Boolean(compareAt != null && compareAt > price),
+        }),
+      });
+      setMessage(`Price updated for ${pricingDraft.name}.`);
+      setPricingDraft(null);
+      if (editingId === pricingDraft.productId) {
+        setForm((f) => ({
+          ...f,
+          price: String(price),
+          compareAt: compareAt != null ? String(compareAt) : "",
+        }));
+      }
+      reload();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Price update failed");
+    } finally {
+      setPricingBusy(false);
+    }
   }
 
   async function toggleActive(product: Product) {
@@ -195,12 +377,47 @@ export default function AdminProductsPage() {
         Products
       </h1>
       <p className="mt-2 font-serif text-muted">
-        Catalogue management — create, edit, and archive styles. Use Stock to
-        adjust size quantities after create.
+        Catalogue management — create, edit, set selling price or MRP discount,
+        and archive styles. Use Stock to adjust size quantities after create.
       </p>
 
       {error ? <p className="mt-4 text-sm text-sale">{error}</p> : null}
       {message ? <p className="mt-4 text-sm text-emerald">{message}</p> : null}
+
+      {pricingDraft ? (
+        <form
+          onSubmit={savePricing}
+          className="mt-8 grid gap-3 border border-line bg-ivory p-5 md:grid-cols-2"
+        >
+          <h2 className="font-display text-[11px] tracking-[0.16em] md:col-span-2">
+            Set price — {pricingDraft.name}
+          </h2>
+          <PricingFields
+            idPrefix="quick"
+            price={pricingDraft.price}
+            compareAt={pricingDraft.compareAt}
+            onPriceChange={(price) =>
+              setPricingDraft((d) => (d ? { ...d, price } : d))
+            }
+            onCompareAtChange={(compareAt) =>
+              setPricingDraft((d) => (d ? { ...d, compareAt } : d))
+            }
+          />
+          <div className="flex flex-wrap gap-2 md:col-span-2">
+            <Button type="submit" disabled={pricingBusy}>
+              {pricingBusy ? "Saving…" : "Save price"}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={pricingBusy}
+              onClick={() => setPricingDraft(null)}
+            >
+              Cancel
+            </Button>
+          </div>
+        </form>
+      ) : null}
 
       <form
         onSubmit={onSubmit}
@@ -215,8 +432,6 @@ export default function AdminProductsPage() {
             ["slug", "Slug"],
             ["category", "Category"],
             ["categorySlug", "Category slug"],
-            ["price", "Price"],
-            ["compareAt", "Compare at"],
             ["colors", "Colors (comma)"],
             ["fabric", "Fabric"],
             ["occasion", "Occasion (comma)"],
@@ -233,10 +448,19 @@ export default function AdminProductsPage() {
                 setForm((f) => ({ ...f, [key]: e.target.value }))
               }
               className="w-full border border-line px-3 py-2"
-              required={key !== "compareAt"}
+              required
             />
           </label>
         ))}
+        <PricingFields
+          idPrefix="form"
+          price={form.price}
+          compareAt={form.compareAt}
+          onPriceChange={(price) => setForm((f) => ({ ...f, price }))}
+          onCompareAtChange={(compareAt) =>
+            setForm((f) => ({ ...f, compareAt }))
+          }
+        />
         <label className="block text-sm md:col-span-2">
           <span className="mb-1 block font-display text-[9px] tracking-[0.14em] text-muted">
             Description
@@ -329,7 +553,8 @@ export default function AdminProductsPage() {
           <thead className="border-b border-line font-display text-[10px] tracking-[0.14em] text-muted">
             <tr>
               <th className="px-3 py-3">Name</th>
-              <th className="px-3 py-3">Price</th>
+              <th className="px-3 py-3">Selling</th>
+              <th className="px-3 py-3">MRP</th>
               <th className="px-3 py-3">Flags</th>
               <th className="px-3 py-3">Status</th>
               <th className="px-3 py-3" />
@@ -343,6 +568,13 @@ export default function AdminProductsPage() {
                   <div className="text-xs text-muted">{p.slug}</div>
                 </td>
                 <td className="px-3 py-3">{formatINR(p.price)}</td>
+                <td className="px-3 py-3 text-muted">
+                  {p.compareAt ? (
+                    <span className="line-through">{formatINR(p.compareAt)}</span>
+                  ) : (
+                    "—"
+                  )}
+                </td>
                 <td className="px-3 py-3 text-xs text-muted">
                   {[p.isNew && "new", p.onSale && "sale", p.featured && "featured"]
                     .filter(Boolean)
@@ -353,6 +585,14 @@ export default function AdminProductsPage() {
                 </td>
                 <td className="px-3 py-3">
                   <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="px-3 py-2"
+                      onClick={() => openPricing(p)}
+                    >
+                      Set price
+                    </Button>
                     <Button
                       type="button"
                       variant="secondary"

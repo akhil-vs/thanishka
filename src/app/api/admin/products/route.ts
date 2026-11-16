@@ -1,6 +1,9 @@
 import { error, fromZod, json, requireBackoffice } from "@/lib/admin/http";
 import { asSizeMap, asStringArray } from "@/lib/admin/types";
-import { productInputSchema } from "@/lib/admin/validators";
+import {
+  assertProductPricing,
+  productInputSchema,
+} from "@/lib/admin/validators";
 import { revalidateCatalog } from "@/lib/catalog-revalidate";
 import { prisma } from "@/lib/db";
 
@@ -29,6 +32,17 @@ export async function POST(request: Request) {
 
   try {
     const body = productInputSchema.parse(await request.json());
+    const compareAt = body.compareAt ?? null;
+    try {
+      assertProductPricing(body.price, compareAt);
+    } catch (err) {
+      return error(
+        err instanceof Error ? err.message : "Invalid product pricing",
+        400,
+      );
+    }
+    const onSale =
+      body.onSale ?? Boolean(compareAt != null && compareAt > body.price);
     const product = await prisma.product.create({
       data: {
         name: body.name,
@@ -36,7 +50,7 @@ export async function POST(request: Request) {
         category: body.category,
         categorySlug: body.categorySlug,
         price: body.price,
-        compareAt: body.compareAt ?? null,
+        compareAt,
         colors: body.colors,
         fabric: body.fabric,
         occasion: body.occasion,
@@ -45,7 +59,7 @@ export async function POST(request: Request) {
         images: body.images,
         sizes: body.sizes,
         isNew: body.isNew ?? true,
-        onSale: body.onSale ?? Boolean(body.compareAt),
+        onSale,
         featured: body.featured ?? false,
         active: body.active ?? true,
       },
