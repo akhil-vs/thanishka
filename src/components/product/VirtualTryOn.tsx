@@ -298,8 +298,8 @@ export function VirtualTryOn({ product }: { product: Product }) {
       {message && <p className="mt-3 text-sm text-sale">{message}</p>}
 
       <p className="mt-4 text-[11px] leading-relaxed text-muted">
-        Powered by Google Gemini via OpenRouter. Not available for set saree /
-        mundu. Preview may differ from the finished garment.
+        Powered by Google Gemini. Not available for set saree / mundu. Preview
+        may differ from the finished garment.
       </p>
     </section>
   );

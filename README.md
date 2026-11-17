@@ -56,7 +56,7 @@ Backend is Next.js Route Handlers on the same Vercel project — no separate API
    - `ADMIN_EMAIL` / `ADMIN_PASSWORD` — optional seed overrides
    - `BLOB_READ_WRITE_TOKEN` — optional but preferred; from Vercel → Storage → Blob.
      Without it, admin uploads on Vercel store image bytes in Postgres (`/api/media/:id`).
-   - `OPENROUTER_API_KEY` — optional; enables AI virtual try-on on eligible PDPs (not set saree).
+   - `GEMINI_API_KEY` — optional; enables AI virtual try-on on eligible PDPs (not set saree). Google AI Studio key.
 6. Redeploy. `vercel.json` runs `scripts/vercel-build.sh`
    (`prisma generate` → `migrate deploy` → `db seed` → `next build`).
    The script remaps Marketplace URL aliases onto `DATABASE_URL` and fails clearly if Production has no DB URL.
@@ -118,7 +118,7 @@ Identity is a shared `User` model with `RoleAssignment` (`ADMIN`, `SHOP_OWNER`, 
 - Analytics: `GET /api/admin/analytics?from=&to=&compare=1` (IST day buckets)
 - Feedback: `GET/POST /api/feedback` (order-linked, delivered only) · `GET /api/admin/feedback` · `PATCH /api/admin/feedback/:id`
 - Account: `GET /api/account/orders`
-- Virtual try-on: `GET/POST /api/virtual-try-on` — Gemini image via OpenRouter (`OPENROUTER_API_KEY`). Set saree / mundu excluded. Adapted from [creativoma/virtual-try-on-store](https://github.com/creativoma/virtual-try-on-store) (MIT).
+- Virtual try-on: `GET/POST /api/virtual-try-on` — Gemini image API direct (`GEMINI_API_KEY`, model `gemini-3-pro-image-preview`). Set saree / mundu excluded. Prompt adapted from [creativoma/virtual-try-on-store](https://github.com/creativoma/virtual-try-on-store) (MIT).
 
 ## Checkout / Razorpay
 
