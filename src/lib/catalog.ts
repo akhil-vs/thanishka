@@ -33,6 +33,7 @@ export function mapDbProduct(row: DbProduct): Product {
     description: row.description,
     care: row.care,
     images: ensureImagePair(asStringArray(row.images)),
+    videoUrl: row.videoUrl ?? undefined,
     sizes: asSizeMap(row.sizes) as Record<Size, number>,
     isNew: row.isNew,
     onSale: row.onSale,

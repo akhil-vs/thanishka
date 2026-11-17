@@ -159,6 +159,23 @@ export function ProductDetail({
               </button>
             ))}
           </div>
+          {product.videoUrl ? (
+            <div className="mt-4">
+              <p className="mb-2 font-display text-[10px] tracking-[0.16em] text-muted">
+                Product video
+              </p>
+              <div className="overflow-hidden border border-line bg-sand">
+                <video
+                  src={product.videoUrl}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  className="aspect-[3/4] max-h-[28rem] w-full bg-charcoal object-contain md:aspect-video md:max-h-80"
+                  aria-label={`${product.name} video`}
+                />
+              </div>
+            </div>
+          ) : null}
         </div>
 
         <div>

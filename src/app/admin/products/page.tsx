@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { ImageUploader } from "@/components/admin/ImageUploader";
+import { VideoUploader } from "@/components/admin/VideoUploader";
 import { Button } from "@/components/ui/Button";
 import { adminFetch } from "@/lib/admin/client";
 import { useAdminResource } from "@/lib/admin/useAdminResource";
@@ -21,6 +22,7 @@ type Product = {
   description: string;
   care: string;
   images: string[];
+  videoUrl: string | null;
   active: boolean;
   isNew: boolean;
   onSale: boolean;
@@ -41,6 +43,7 @@ const emptyForm = {
   description: "New boutique piece from Thanishka.",
   care: "Dry clean recommended.",
   images: [] as string[],
+  videoUrl: null as string | null,
   xs: 0,
   s: 2,
   m: 4,
@@ -90,6 +93,7 @@ function productToForm(p: Product): FormState {
     description: p.description,
     care: p.care,
     images: [...p.images],
+    videoUrl: p.videoUrl ?? null,
     xs: p.sizes.XS ?? 0,
     s: p.sizes.S ?? 0,
     m: p.sizes.M ?? 0,
@@ -122,6 +126,7 @@ function formPayload(form: FormState, includeSizes: boolean) {
     description: form.description,
     care: form.care,
     images: form.images,
+    videoUrl: form.videoUrl,
     isNew: form.isNew,
     featured: form.featured,
     onSale: Boolean(compareAt != null && price != null && compareAt > price),
@@ -384,6 +389,12 @@ export default function AdminProductsPage() {
           values={form.images}
           onChange={(images) => setForm((f) => ({ ...f, images }))}
           maxFiles={8}
+        />
+        <VideoUploader
+          label="Product video (optional)"
+          hint="Stored as the original file on Blob/local disk — no re-encode, not in the database."
+          value={form.videoUrl}
+          onChange={(videoUrl) => setForm((f) => ({ ...f, videoUrl }))}
         />
         {!editingId ? (
           <div className="grid grid-cols-6 gap-2 md:col-span-2">
