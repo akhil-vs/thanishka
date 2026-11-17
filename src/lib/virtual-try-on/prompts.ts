@@ -1,6 +1,7 @@
 /**
  * Prompt adapted from creativoma/virtual-try-on-store (MIT)
  * https://github.com/creativoma/virtual-try-on-store
+ * Used with the Google Gemini image API (direct).
  */
 
 interface PromptParams {

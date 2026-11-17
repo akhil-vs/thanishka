@@ -2,10 +2,11 @@ import { z } from "zod";
 import { error, fromZod, json } from "@/lib/http";
 import { VTO_API_CONFIG, VTO_ERROR_MESSAGES } from "@/lib/virtual-try-on/constants";
 import {
+  getGeminiApiKey,
   isVirtualTryOnConfigured,
   isVirtualTryOnEligible,
 } from "@/lib/virtual-try-on/eligibility";
-import { generateVirtualTryOnImage } from "@/lib/virtual-try-on/openrouter";
+import { generateVirtualTryOnImage } from "@/lib/virtual-try-on/gemini";
 import { generateVirtualTryOnPrompt } from "@/lib/virtual-try-on/prompts";
 
 /** Image generation can exceed the default serverless budget. */
@@ -75,7 +76,7 @@ export async function POST(request: Request) {
     return error(VTO_ERROR_MESSAGES.CATEGORY_BLOCKED, 403);
   }
 
-  const apiKey = process.env.OPENROUTER_API_KEY!.trim();
+  const apiKey = getGeminiApiKey()!;
   const prompt = generateVirtualTryOnPrompt({
     productName,
     productDescription,
