@@ -89,14 +89,14 @@ Identity is a shared `User` model with `RoleAssignment` (`ADMIN`, `SHOP_OWNER`, 
 | Area | Capabilities |
 | --- | --- |
 | **Stock** | Single size adjust/set + bulk CSV-style intake + movement log |
-| **Products** | Create/edit catalogue items, set selling price + MRP discount, image upload, archive/activate |
+| **Products** | Create/edit catalogue items, set selling price + MRP discount, image upload, optional product video, archive/activate |
 | **Discounts** | Create/enable/disable/delete coupon codes |
 | **Offers** | Manage promotional banners (feeds homepage offer) |
 | **Top scroll** | Manage announcement-bar marquee messages (feeds `/api/announcements`) |
 | **Hero images** | Manage homepage slider slides (feeds `/api/hero`) — file upload |
 | **Dashboard** | Units, low stock, recent movements, campaign counts |
 | **Analytics** | IST date-range GMV/orders trend, payment mix, bestsellers, cities, coupons, feedback & newsletter |
-| **Uploads** | `POST /api/admin/uploads` — JPEG/PNG/WebP/GIF (max 4 MB); Vercel Blob when configured, else Postgres on Vercel / `public/uploads` locally |
+| **Uploads** | `POST /api/admin/uploads` — JPEG/PNG/WebP/GIF (max 4 MB); Vercel Blob when configured, else Postgres on Vercel / `public/uploads` locally. Product videos: `GET/POST /api/admin/uploads/video` — MP4/WebM/MOV (max 80 MB, originals only); Blob client upload on Vercel, local disk in dev — never Postgres |
 
 ### Key API routes
 
@@ -112,6 +112,7 @@ Identity is a shared `User` model with `RoleAssignment` (`ADMIN`, `SHOP_OWNER`, 
 - `GET/POST /api/admin/announcements` · `PATCH/DELETE /api/admin/announcements/:id`
 - `GET/POST /api/admin/hero` · `PATCH/DELETE /api/admin/hero/:id`
 - `POST /api/admin/uploads` — multipart image upload for admin/studio
+- `GET/POST /api/admin/uploads/video` — optional product video (Blob client token or local multipart)
 - Public: `GET /api/media/:id` — serve Postgres-stored uploads · `GET /api/hero` · `GET /api/offers` · `GET /api/announcements` · `GET /api/feedback/public`
 - Checkout: `POST /api/checkout/quote` · `POST /api/checkout/create` · `POST /api/checkout/verify` · `GET /api/checkout/orders/:id` · `POST /api/checkout/webhook`
 - Orders desk: `GET /api/admin/orders` · `GET/PATCH /api/admin/orders/:id`

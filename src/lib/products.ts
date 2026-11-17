@@ -14,6 +14,8 @@ export type Product = {
   description: string;
   care: string;
   images: [string, string, ...string[]];
+  /** Optional product video URL (Blob or local /uploads). */
+  videoUrl?: string;
   sizes: Record<Size, number>;
   isNew?: boolean;
   onSale?: boolean;

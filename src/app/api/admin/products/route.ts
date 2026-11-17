@@ -57,6 +57,7 @@ export async function POST(request: Request) {
         description: body.description,
         care: body.care,
         images: body.images,
+        videoUrl: body.videoUrl ?? null,
         sizes: body.sizes,
         isNew: body.isNew ?? true,
         onSale,

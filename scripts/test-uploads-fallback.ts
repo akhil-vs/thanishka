@@ -12,7 +12,9 @@ import {
 } from "../src/lib/admin/uploads";
 import {
   isAppHostedImageRef,
+  isAppHostedVideoRef,
   isImageRef,
+  isVideoRef,
 } from "../src/lib/image-ref";
 
 async function main() {
@@ -34,6 +36,9 @@ async function main() {
   assert.equal(isImageRef("https://images.unsplash.com/photo-1"), true);
   assert.equal(isImageRef("not-a-url"), false);
   assert.equal(isImageRef("ftp://bad.example/x"), false);
+  assert.equal(isAppHostedVideoRef("/uploads/videos/a.mp4"), true);
+  assert.equal(isVideoRef("https://cdn.example/v.mp4"), true);
+  assert.equal(isVideoRef("ftp://bad.example/v.mp4"), false);
 
   delete process.env.BLOB_READ_WRITE_TOKEN;
   delete process.env.VERCEL;

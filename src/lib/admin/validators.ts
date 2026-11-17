@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { isImageRef } from "@/lib/admin/image-ref";
+import { isImageRef, isVideoRef } from "@/lib/admin/image-ref";
 
 export const sizesSchema = z.object({
   XS: z.number().int().min(0),
@@ -14,6 +14,11 @@ export const imageRefSchema = z
   .string()
   .min(1)
   .refine(isImageRef, { message: "Invalid image URL" });
+
+export const videoRefSchema = z
+  .string()
+  .min(1)
+  .refine(isVideoRef, { message: "Invalid video URL" });
 
 export function assertProductPricing(
   price: number,
@@ -61,6 +66,7 @@ export const productInputSchema = z.object({
   description: z.string().min(8),
   care: z.string().min(2),
   images: z.array(imageRefSchema).min(2),
+  videoUrl: videoRefSchema.nullable().optional(),
   sizes: sizesSchema,
   isNew: z.boolean().optional(),
   onSale: z.boolean().optional(),

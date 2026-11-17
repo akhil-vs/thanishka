@@ -126,6 +126,8 @@ model Product {
   description  String
   care         String
   images       Json
+  /** Optional product video URL (Blob / local). Never stored as DB bytes. */
+  videoUrl     String?  @map("video_url")
   sizes        Json
   isNew        Boolean  @default(false) @map("is_new")
   onSale       Boolean  @default(false) @map("on_sale")
