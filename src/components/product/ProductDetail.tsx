@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Heart } from "lucide-react";
+import { ChevronLeft, ChevronRight, Heart, Play } from "lucide-react";
 import { isAppHostedImageRef } from "@/lib/image-ref";
 import type { Product, Size } from "@/lib/products";
 import { sizeChartForProduct } from "@/lib/size-charts";
@@ -17,6 +17,64 @@ import { VirtualTryOn } from "@/components/product/VirtualTryOn";
 
 const sizeOrder: Size[] = ["XS", "S", "M", "L", "XL", "XXL"];
 const SWIPE_THRESHOLD = 48;
+
+type GallerySlide =
+  | { kind: "video"; src: string }
+  | { kind: "image"; src: string };
+
+function gallerySlides(
+  product: Pick<Product, "videoUrl" | "images">,
+): GallerySlide[] {
+  const slides: GallerySlide[] = [];
+  if (product.videoUrl) slides.push({ kind: "video", src: product.videoUrl });
+  for (const src of product.images) slides.push({ kind: "image", src });
+  return slides;
+}
+
+function imageOrdinal(slides: GallerySlide[], index: number) {
+  let count = 0;
+  for (let i = 0; i <= index && i < slides.length; i++) {
+    if (slides[i]?.kind === "image") count += 1;
+  }
+  return count;
+}
+
+function GalleryVideo({ src, label }: { src: string; label: string }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [paused, setPaused] = useState(true);
+
+  return (
+    <>
+      <video
+        ref={ref}
+        src={src}
+        controls
+        playsInline
+        preload="metadata"
+        className="absolute inset-0 h-full w-full bg-charcoal object-contain"
+        aria-label={label}
+        onPlay={() => setPaused(false)}
+        onPause={() => setPaused(true)}
+        onTouchStart={(e) => e.stopPropagation()}
+        onTouchEnd={(e) => e.stopPropagation()}
+      >
+        Your browser does not support the video tag.
+      </video>
+      {paused ? (
+        <button
+          type="button"
+          aria-label="Play video"
+          onClick={() => {
+            void ref.current?.play();
+          }}
+          className="absolute left-1/2 top-1/2 z-20 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center border border-line bg-ivory/90 text-charcoal"
+        >
+          <Play size={22} fill="currentColor" aria-hidden />
+        </button>
+      ) : null}
+    </>
+  );
+}
 
 export function ProductDetail({
   product,
@@ -35,8 +93,12 @@ export function ProductDetail({
   const toggle = useWishlist((s) => s.toggle);
   const wished = useWishlist((s) => s.ids.includes(product.id));
   const chart = sizeChartForProduct(product);
-  const imageCount = product.images.length;
-  const hasMultipleImages = imageCount > 1;
+  const slides = useMemo(() => gallerySlides(product), [product]);
+  const slideCount = slides.length;
+  const hasMultiple = slideCount > 1;
+  const activeIndex =
+    slideCount === 0 ? 0 : Math.min(active, slideCount - 1);
+  const activeSlide = slides[activeIndex];
   const touchStartX = useRef<number | null>(null);
 
   const stock = size ? product.sizes[size] : null;
@@ -48,16 +110,16 @@ export function ProductDetail({
   );
 
   function goTo(index: number) {
-    if (imageCount === 0) return;
-    setActive(((index % imageCount) + imageCount) % imageCount);
+    if (slideCount === 0) return;
+    setActive(((index % slideCount) + slideCount) % slideCount);
   }
 
   function showPrev() {
-    goTo(active - 1);
+    goTo(activeIndex - 1);
   }
 
   function showNext() {
-    goTo(active + 1);
+    goTo(activeIndex + 1);
   }
 
   return (
@@ -66,16 +128,20 @@ export function ProductDetail({
         <div>
           <div
             className="relative aspect-[3/4] overflow-hidden bg-sand outline-none"
-            tabIndex={hasMultipleImages ? 0 : undefined}
-            role={hasMultipleImages ? "region" : undefined}
-            aria-roledescription={hasMultipleImages ? "carousel" : undefined}
+            tabIndex={hasMultiple ? 0 : undefined}
+            role={hasMultiple ? "region" : undefined}
+            aria-roledescription={hasMultiple ? "carousel" : undefined}
             aria-label={
-              hasMultipleImages
-                ? `${product.name} images, ${active + 1} of ${imageCount}`
+              hasMultiple
+                ? `${product.name} gallery, ${
+                    activeSlide?.kind === "video"
+                      ? "video"
+                      : `image ${imageOrdinal(slides, activeIndex)}`
+                  }, ${activeIndex + 1} of ${slideCount}`
                 : undefined
             }
             onKeyDown={(e) => {
-              if (!hasMultipleImages) return;
+              if (!hasMultiple) return;
               if (e.key === "ArrowLeft") {
                 e.preventDefault();
                 showPrev();
@@ -85,11 +151,11 @@ export function ProductDetail({
               }
             }}
             onTouchStart={(e) => {
-              if (!hasMultipleImages) return;
+              if (!hasMultiple) return;
               touchStartX.current = e.changedTouches[0]?.clientX ?? null;
             }}
             onTouchEnd={(e) => {
-              if (!hasMultipleImages || touchStartX.current == null) return;
+              if (!hasMultiple || touchStartX.current == null) return;
               const endX = e.changedTouches[0]?.clientX;
               if (endX == null) return;
               const delta = endX - touchStartX.current;
@@ -99,23 +165,31 @@ export function ProductDetail({
               else showNext();
             }}
           >
-            <Image
-              src={product.images[active]}
-              alt={`${product.name} — image ${active + 1} of ${imageCount}`}
-              fill
-              priority
-              unoptimized={isAppHostedImageRef(product.images[active])}
-              sizes="(max-width: 768px) 100vw, 50vw"
-              className="object-cover transition duration-500 hover:scale-[1.03]"
-              draggable={false}
-            />
-            {hasMultipleImages && (
+            {activeSlide?.kind === "video" ? (
+              <GalleryVideo
+                key={activeSlide.src}
+                src={activeSlide.src}
+                label={`${product.name} video`}
+              />
+            ) : activeSlide?.kind === "image" ? (
+              <Image
+                src={activeSlide.src}
+                alt={`${product.name} — image ${imageOrdinal(slides, activeIndex)} of ${product.images.length}`}
+                fill
+                preload={activeIndex === 0}
+                unoptimized={isAppHostedImageRef(activeSlide.src)}
+                sizes="(max-width: 768px) 100vw, 50vw"
+                className="object-cover transition duration-500 hover:scale-[1.03]"
+                draggable={false}
+              />
+            ) : null}
+            {hasMultiple && (
               <>
                 <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-between px-2 md:px-3">
                   <button
                     type="button"
                     onClick={showPrev}
-                    aria-label="Previous image"
+                    aria-label="Previous slide"
                     className="pointer-events-auto flex h-10 w-10 items-center justify-center border border-line bg-ivory/90 text-charcoal transition hover:bg-ivory"
                   >
                     <ChevronLeft size={20} strokeWidth={1.5} />
@@ -123,59 +197,74 @@ export function ProductDetail({
                   <button
                     type="button"
                     onClick={showNext}
-                    aria-label="Next image"
+                    aria-label="Next slide"
                     className="pointer-events-auto flex h-10 w-10 items-center justify-center border border-line bg-ivory/90 text-charcoal transition hover:bg-ivory"
                   >
                     <ChevronRight size={20} strokeWidth={1.5} />
                   </button>
                 </div>
-                <p className="pointer-events-none absolute bottom-3 right-3 z-10 bg-ivory/90 px-2 py-1 font-display text-[10px] tracking-[0.14em] text-charcoal">
-                  {active + 1} / {imageCount}
+                <p
+                  className={cn(
+                    "pointer-events-none absolute right-3 z-10 bg-ivory/90 px-2 py-1 font-display text-[10px] tracking-[0.14em] text-charcoal",
+                    activeSlide?.kind === "video" ? "top-3" : "bottom-3",
+                  )}
+                >
+                  {activeSlide?.kind === "video" ? "Video · " : ""}
+                  {activeIndex + 1} / {slideCount}
                 </p>
               </>
             )}
           </div>
           <div className="mt-3 flex gap-2 overflow-x-auto">
-            {product.images.map((img, i) => (
+            {slides.map((slide, i) => (
               <button
-                key={img}
+                key={`${slide.kind}-${i}`}
                 type="button"
                 onClick={() => setActive(i)}
-                aria-label={`Show image ${i + 1}`}
-                aria-current={i === active ? "true" : undefined}
+                aria-label={
+                  slide.kind === "video"
+                    ? "Show video"
+                    : `Show image ${imageOrdinal(slides, i)}`
+                }
+                aria-current={i === activeIndex ? "true" : undefined}
                 className={cn(
                   "relative h-20 w-16 shrink-0 overflow-hidden border",
-                  i === active ? "border-charcoal" : "border-transparent",
+                  i === activeIndex ? "border-charcoal" : "border-transparent",
                 )}
               >
-                <Image
-                  src={img}
-                  alt=""
-                  fill
-                  unoptimized={isAppHostedImageRef(img)}
-                  className="object-cover"
-                  sizes="64px"
-                />
+                {slide.kind === "video" ? (
+                  <>
+                    <video
+                      src={slide.src}
+                      muted
+                      playsInline
+                      preload="metadata"
+                      tabIndex={-1}
+                      aria-hidden
+                      className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+                    />
+                    <span className="absolute inset-0 flex items-center justify-center bg-charcoal/40">
+                      <Play
+                        size={16}
+                        className="text-ivory"
+                        fill="currentColor"
+                        aria-hidden
+                      />
+                    </span>
+                  </>
+                ) : (
+                  <Image
+                    src={slide.src}
+                    alt=""
+                    fill
+                    unoptimized={isAppHostedImageRef(slide.src)}
+                    className="object-cover"
+                    sizes="64px"
+                  />
+                )}
               </button>
             ))}
           </div>
-          {product.videoUrl ? (
-            <div className="mt-4">
-              <p className="mb-2 font-display text-[10px] tracking-[0.16em] text-muted">
-                Product video
-              </p>
-              <div className="overflow-hidden border border-line bg-sand">
-                <video
-                  src={product.videoUrl}
-                  controls
-                  playsInline
-                  preload="metadata"
-                  className="aspect-[3/4] max-h-[28rem] w-full bg-charcoal object-contain md:aspect-video md:max-h-80"
-                  aria-label={`${product.name} video`}
-                />
-              </div>
-            </div>
-          ) : null}
         </div>
 
         <div>
