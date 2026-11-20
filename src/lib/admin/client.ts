@@ -52,19 +52,28 @@ function videoUploadPathname(file: File) {
   return `uploads/videos/${stamp}-${base}.${ext}`;
 }
 
+function formatMb(bytes: number) {
+  return Math.round(bytes / (1024 * 1024));
+}
+
 /**
  * Optional product video: originals only (no re-encode).
- * Uses direct-to-Blob when configured (avoids serverless body limits + DB bloat);
- * falls back to local multipart in development.
+ * Blob when configured; otherwise local disk or Postgres media fallback.
  */
 export async function adminUploadVideo(file: File) {
   const mode = await adminFetch<{
-    strategy: "blob" | "local";
+    strategy: "blob" | "local" | "database";
     maxBytes: number;
   }>("/api/admin/uploads/video");
 
   if (file.size > mode.maxBytes) {
-    throw new Error("Video must be 80 MB or smaller");
+    const mb = formatMb(mode.maxBytes);
+    if (mode.strategy === "database") {
+      throw new Error(
+        `Without Vercel Blob, product videos must be ${mb} MB or smaller. Connect Blob (BLOB_READ_WRITE_TOKEN) for up to 80 MB uploads.`,
+      );
+    }
+    throw new Error(`Video must be ${mb} MB or smaller`);
   }
 
   if (mode.strategy === "blob") {
@@ -87,7 +96,7 @@ export async function adminUploadVideo(file: File) {
   return adminFetch<{
     url: string;
     pathname: string;
-    storage: "local";
+    storage: "local" | "database";
   }>("/api/admin/uploads/video", {
     method: "POST",
     body,

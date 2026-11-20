@@ -1,5 +1,5 @@
 /**
- * Product video upload helpers — Blob/local only, never Postgres.
+ * Product video upload helpers — Blob preferred; local/database fallbacks.
  */
 import assert from "node:assert/strict";
 import { readFile, unlink, rm } from "node:fs/promises";
@@ -8,6 +8,8 @@ import {
   buildVideoUploadPathname,
   getVideoUploadStrategy,
   isAllowedVideoType,
+  maxVideoBytesForStrategy,
+  MAX_VIDEO_DATABASE_BYTES,
   MAX_VIDEO_UPLOAD_BYTES,
   storeUploadedVideo,
 } from "../src/lib/admin/uploads";
@@ -20,9 +22,14 @@ async function main() {
   assert.equal(isAllowedVideoType("video/quicktime"), true);
   assert.equal(isAllowedVideoType("video/avi"), false);
   assert.equal(MAX_VIDEO_UPLOAD_BYTES, 80 * 1024 * 1024);
+  assert.equal(MAX_VIDEO_DATABASE_BYTES, 4 * 1024 * 1024);
+  assert.equal(maxVideoBytesForStrategy("database"), MAX_VIDEO_DATABASE_BYTES);
+  assert.equal(maxVideoBytesForStrategy("blob"), MAX_VIDEO_UPLOAD_BYTES);
 
   assert.equal(isAppHostedVideoRef("/uploads/videos/a.mp4"), true);
+  assert.equal(isAppHostedVideoRef("/api/media/clxyz123"), true);
   assert.equal(isVideoRef("/uploads/videos/a.mp4"), true);
+  assert.equal(isVideoRef("/api/media/clxyz123"), true);
   assert.equal(
     isVideoRef("https://xyz.public.blob.vercel-storage.com/v.mp4"),
     true,
@@ -43,7 +50,7 @@ async function main() {
   assert.equal(getVideoUploadStrategy(), "local");
 
   process.env.VERCEL = "1";
-  assert.equal(getVideoUploadStrategy(), null);
+  assert.equal(getVideoUploadStrategy(), "database");
   delete process.env.VERCEL;
 
   process.env.BLOB_READ_WRITE_TOKEN = "vercel_blob_rw_test";
@@ -63,13 +70,6 @@ async function main() {
   await rm(path.dirname(absolute), { recursive: true, force: true }).catch(
     () => undefined,
   );
-
-  process.env.VERCEL = "1";
-  await assert.rejects(
-    () => storeUploadedVideo(tiny),
-    /Vercel Blob/,
-  );
-  delete process.env.VERCEL;
 
   const withVideo = productInputSchema.parse({
     name: "Test Dress",
@@ -93,6 +93,11 @@ async function main() {
 
   const cleared = productInputSchema.partial().parse({ videoUrl: null });
   assert.equal(cleared.videoUrl, null);
+
+  const mediaHosted = productInputSchema.partial().parse({
+    videoUrl: "/api/media/clxyz123",
+  });
+  assert.equal(mediaHosted.videoUrl, "/api/media/clxyz123");
 
   const omitted = productInputSchema.parse({
     name: "No Video Dress",

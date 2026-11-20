@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { adminUploadVideo } from "@/lib/admin/client";
+import { adminFetch, adminUploadVideo } from "@/lib/admin/client";
 
 type Props = {
   value: string | null;
@@ -10,6 +10,26 @@ type Props = {
   label?: string;
   hint?: string;
 };
+
+type VideoMode = {
+  strategy: "blob" | "local" | "database";
+  maxBytes: number;
+};
+
+function formatMb(bytes: number) {
+  return Math.round(bytes / (1024 * 1024));
+}
+
+function defaultHint(mode: VideoMode | null) {
+  if (!mode) {
+    return "MP4, WebM or MOV · stored as-is (no quality loss)";
+  }
+  const mb = formatMb(mode.maxBytes);
+  if (mode.strategy === "database") {
+    return `MP4, WebM or MOV · max ${mb} MB without Blob (connect Vercel Blob for up to 80 MB) · stored as-is`;
+  }
+  return `MP4, WebM or MOV · max ${mb} MB · stored as-is (no quality loss)`;
+}
 
 export function VideoUploader({
   value,
@@ -20,6 +40,21 @@ export function VideoUploader({
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  const [mode, setMode] = useState<VideoMode | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    adminFetch<VideoMode>("/api/admin/uploads/video")
+      .then((data) => {
+        if (!cancelled) setMode(data);
+      })
+      .catch(() => {
+        // Hint falls back to generic copy if mode probe fails.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function onFileSelected(files: FileList | null) {
     const file = files?.[0];
@@ -37,6 +72,8 @@ export function VideoUploader({
     }
   }
 
+  const shownHint = hint ?? defaultHint(mode);
+
   return (
     <div className="md:col-span-2">
       <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
@@ -44,8 +81,8 @@ export function VideoUploader({
           <p className="font-display text-[9px] tracking-[0.14em] text-muted">
             {label}
           </p>
-          {hint ? (
-            <p className="mt-1 font-serif text-xs text-muted">{hint}</p>
+          {shownHint ? (
+            <p className="mt-1 font-serif text-xs text-muted">{shownHint}</p>
           ) : null}
         </div>
         <div className="flex flex-wrap gap-2">
@@ -109,7 +146,7 @@ export function VideoUploader({
             Optional product video
           </span>
           <span className="mt-2 font-serif text-xs text-muted">
-            MP4, WebM or MOV · max 80 MB · stored as-is (no quality loss)
+            {defaultHint(mode)}
           </span>
         </button>
       )}

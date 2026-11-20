@@ -6,8 +6,14 @@ import { prisma } from "@/lib/db";
 
 export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 
-/** Cap for product videos — originals only (no re-encode). Prefer Blob over DB. */
+/** Cap when using Vercel Blob or local disk — originals only (no re-encode). */
 export const MAX_VIDEO_UPLOAD_BYTES = 80 * 1024 * 1024;
+
+/**
+ * Cap when falling back to Postgres on Vercel without Blob.
+ * Matches typical serverless body limits and keeps DB rows smaller.
+ */
+export const MAX_VIDEO_DATABASE_BYTES = MAX_UPLOAD_BYTES;
 
 export const ALLOWED_IMAGE_TYPES = new Set([
   "image/jpeg",
@@ -45,12 +51,18 @@ export function isAllowedVideoType(type: string) {
 
 export type UploadStorage = "blob" | "local" | "database";
 
-export type VideoUploadStrategy = "blob" | "local";
+export type VideoUploadStrategy = UploadStorage;
 
-export function getVideoUploadStrategy(): VideoUploadStrategy | null {
+export function getVideoUploadStrategy(): VideoUploadStrategy {
   if (process.env.BLOB_READ_WRITE_TOKEN) return "blob";
   if (!process.env.VERCEL) return "local";
-  return null;
+  return "database";
+}
+
+export function maxVideoBytesForStrategy(strategy: VideoUploadStrategy) {
+  return strategy === "database"
+    ? MAX_VIDEO_DATABASE_BYTES
+    : MAX_VIDEO_UPLOAD_BYTES;
 }
 
 function extensionFor(
@@ -129,19 +141,25 @@ export async function storeUploadedImage(file: File): Promise<{
 }
 
 /**
- * Store a product video as-is (no re-encode) in object storage or local disk.
- * Never writes video bytes into Postgres — that would bloat the database.
+ * Store a product video as-is (no re-encode).
+ * Prefer Vercel Blob; fall back to local disk, then Postgres media rows
+ * (same durable path as images when Blob is not connected).
  */
 export async function storeUploadedVideo(file: File): Promise<{
   url: string;
   pathname: string;
-  storage: Exclude<UploadStorage, "database">;
+  storage: UploadStorage;
 }> {
   const strategy = getVideoUploadStrategy();
-  if (!strategy) {
-    throw new Error(
-      "Product videos require Vercel Blob. Connect Blob (BLOB_READ_WRITE_TOKEN) — videos are not stored in the database.",
-    );
+  const maxBytes = maxVideoBytesForStrategy(strategy);
+  if (file.size > maxBytes) {
+    const mb = Math.round(maxBytes / (1024 * 1024));
+    if (strategy === "database") {
+      throw new Error(
+        `Without Vercel Blob, product videos must be ${mb} MB or smaller. Connect Blob (BLOB_READ_WRITE_TOKEN) for up to 80 MB uploads.`,
+      );
+    }
+    throw new Error(`Video must be ${mb} MB or smaller`);
   }
 
   const pathname = buildVideoUploadPathname(file);
@@ -155,9 +173,27 @@ export async function storeUploadedVideo(file: File): Promise<{
     return { url: blob.url, pathname: blob.pathname, storage: "blob" };
   }
 
-  const absolute = path.join(process.cwd(), "public", pathname);
-  await mkdir(path.dirname(absolute), { recursive: true });
+  if (strategy === "local") {
+    const absolute = path.join(process.cwd(), "public", pathname);
+    await mkdir(path.dirname(absolute), { recursive: true });
+    const buffer = Buffer.from(await file.arrayBuffer());
+    await writeFile(absolute, buffer);
+    return { url: `/${pathname}`, pathname, storage: "local" };
+  }
+
   const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(absolute, buffer);
-  return { url: `/${pathname}`, pathname, storage: "local" };
+  const row = await prisma.uploadedImage.create({
+    data: {
+      pathname,
+      contentType: file.type || "video/mp4",
+      bytes: buffer,
+      byteSize: buffer.byteLength,
+    },
+  });
+
+  return {
+    url: `/api/media/${row.id}`,
+    pathname,
+    storage: "database",
+  };
 }

@@ -37,7 +37,9 @@ async function main() {
   assert.equal(isImageRef("not-a-url"), false);
   assert.equal(isImageRef("ftp://bad.example/x"), false);
   assert.equal(isAppHostedVideoRef("/uploads/videos/a.mp4"), true);
+  assert.equal(isAppHostedVideoRef("/api/media/clxyz123"), true);
   assert.equal(isVideoRef("https://cdn.example/v.mp4"), true);
+  assert.equal(isVideoRef("/api/media/clxyz123"), true);
   assert.equal(isVideoRef("ftp://bad.example/v.mp4"), false);
 
   delete process.env.BLOB_READ_WRITE_TOKEN;

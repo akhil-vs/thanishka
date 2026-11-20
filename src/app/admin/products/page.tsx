@@ -392,7 +392,6 @@ export default function AdminProductsPage() {
         />
         <VideoUploader
           label="Product video (optional)"
-          hint="Stored as the original file on Blob/local disk — no re-encode, not in the database."
           value={form.videoUrl}
           onChange={(videoUrl) => setForm((f) => ({ ...f, videoUrl }))}
         />

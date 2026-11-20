@@ -3,31 +3,25 @@ import {
   ALLOWED_VIDEO_TYPES,
   getVideoUploadStrategy,
   isAllowedVideoType,
+  maxVideoBytesForStrategy,
   MAX_VIDEO_UPLOAD_BYTES,
   storeUploadedVideo,
 } from "@/lib/admin/uploads";
 import { error, json, requireBackoffice } from "@/lib/admin/http";
 
 /**
- * Product video uploads.
- * - JSON → Vercel Blob client-token flow (browser → Blob directly; preserves original bytes).
- * - multipart → local disk only (dev). Videos are never stored in Postgres.
+ * Product video uploads (original bytes, no re-encode).
+ * - JSON → Vercel Blob client-token flow (browser → Blob; preferred for larger files).
+ * - multipart → local disk (dev) or Postgres media (Vercel without Blob, smaller cap).
  */
 export async function GET() {
   const { response } = await requireBackoffice();
   if (response) return response;
 
   const strategy = getVideoUploadStrategy();
-  if (!strategy) {
-    return error(
-      "Product videos require Vercel Blob. Connect Blob (BLOB_READ_WRITE_TOKEN) — videos are not stored in the database.",
-      503,
-    );
-  }
-
   return json({
     strategy,
-    maxBytes: MAX_VIDEO_UPLOAD_BYTES,
+    maxBytes: maxVideoBytesForStrategy(strategy),
     allowedTypes: [...ALLOWED_VIDEO_TYPES],
   });
 }
@@ -46,7 +40,8 @@ async function handleMultipart(request: Request) {
   const { response } = await requireBackoffice();
   if (response) return response;
 
-  if (getVideoUploadStrategy() !== "local") {
+  const strategy = getVideoUploadStrategy();
+  if (strategy === "blob") {
     return error(
       "Use direct Blob upload for product videos when Vercel Blob is configured.",
       400,
@@ -72,8 +67,16 @@ async function handleMultipart(request: Request) {
     );
   }
 
-  if (file.size > MAX_VIDEO_UPLOAD_BYTES) {
-    return error("Video must be 80 MB or smaller", 400);
+  const maxBytes = maxVideoBytesForStrategy(strategy);
+  if (file.size > maxBytes) {
+    const mb = Math.round(maxBytes / (1024 * 1024));
+    if (strategy === "database") {
+      return error(
+        `Without Vercel Blob, product videos must be ${mb} MB or smaller. Connect Blob (BLOB_READ_WRITE_TOKEN) for up to 80 MB uploads.`,
+        400,
+      );
+    }
+    return error(`Video must be ${mb} MB or smaller`, 400);
   }
 
   try {
@@ -89,7 +92,7 @@ async function handleMultipart(request: Request) {
 async function handleClientBlob(request: Request) {
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     return error(
-      "Product videos require Vercel Blob. Connect Blob (BLOB_READ_WRITE_TOKEN).",
+      "Vercel Blob is not configured. Use multipart upload (local/database fallback), or set BLOB_READ_WRITE_TOKEN for larger videos.",
       503,
     );
   }
