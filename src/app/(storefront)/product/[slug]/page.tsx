@@ -46,7 +46,9 @@ async function ProductPageInner({ slug }: { slug: string }) {
   const product = await getCatalogProduct(slug);
   if (!product) notFound();
   const related = await getCatalogRelated(product);
-  return <ProductDetail product={product} related={related} />;
+  return (
+    <ProductDetail key={product.id} product={product} related={related} />
+  );
 }
 
 export default async function ProductPage({
