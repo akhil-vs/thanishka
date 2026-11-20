@@ -55,7 +55,8 @@ Backend is Next.js Route Handlers on the same Vercel project — no separate API
    - `RAZORPAY_WEBHOOK_SECRET` — required in Production; point webhook to `/api/checkout/webhook` (`payment.captured`)
    - `ADMIN_EMAIL` / `ADMIN_PASSWORD` — optional seed overrides
    - `BLOB_READ_WRITE_TOKEN` — optional but preferred; from Vercel → Storage → Blob.
-     Without it, admin uploads on Vercel store image bytes in Postgres (`/api/media/:id`).
+     Without it, admin uploads on Vercel store bytes in Postgres (`/api/media/:id`);
+     product videos are capped at 4 MB until Blob is connected (then up to 80 MB).
    - `OPENROUTER_API_KEY` — optional; enables AI virtual try-on on eligible PDPs (not set saree).
 6. Redeploy. `vercel.json` runs `scripts/vercel-build.sh`
    (`prisma generate` → `migrate deploy` → `db seed` → `next build`).
@@ -96,7 +97,7 @@ Identity is a shared `User` model with `RoleAssignment` (`ADMIN`, `SHOP_OWNER`, 
 | **Hero images** | Manage homepage slider slides (feeds `/api/hero`) — file upload |
 | **Dashboard** | Units, low stock, recent movements, campaign counts |
 | **Analytics** | IST date-range GMV/orders trend, payment mix, bestsellers, cities, coupons, feedback & newsletter |
-| **Uploads** | `POST /api/admin/uploads` — JPEG/PNG/WebP/GIF (max 4 MB); Vercel Blob when configured, else Postgres on Vercel / `public/uploads` locally. Product videos: `GET/POST /api/admin/uploads/video` — MP4/WebM/MOV (max 80 MB, originals only); Blob client upload on Vercel, local disk in dev — never Postgres |
+| **Uploads** | `POST /api/admin/uploads` — JPEG/PNG/WebP/GIF (max 4 MB); Vercel Blob when configured, else Postgres on Vercel / `public/uploads` locally. Product videos: `GET/POST /api/admin/uploads/video` — MP4/WebM/MOV, originals only; Blob client upload up to 80 MB when configured, else local disk / Postgres media (4 MB cap without Blob) |
 
 ### Key API routes
 

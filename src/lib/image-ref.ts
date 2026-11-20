@@ -3,9 +3,9 @@ export function isAppHostedImageRef(value: string) {
   return value.startsWith("/uploads/") || value.startsWith("/api/media/");
 }
 
-/** Local product video paths under public/uploads. */
+/** App-hosted product video paths (local disk or Postgres media API). */
 export function isAppHostedVideoRef(value: string) {
-  return value.startsWith("/uploads/");
+  return value.startsWith("/uploads/") || value.startsWith("/api/media/");
 }
 
 function isHttpUrl(value: string) {
@@ -22,7 +22,7 @@ export function isImageRef(value: string) {
   return isAppHostedImageRef(value) || isHttpUrl(value);
 }
 
-/** Absolute http(s) URL (e.g. Vercel Blob), or a local /uploads path. */
+/** Absolute http(s) URL (e.g. Vercel Blob), or an app-hosted upload path. */
 export function isVideoRef(value: string) {
   return isAppHostedVideoRef(value) || isHttpUrl(value);
 }
