@@ -15,6 +15,12 @@ import { cn } from "@/lib/format";
 const sizes: Size[] = ["XS", "S", "M", "L", "XL", "XXL"];
 const occasions = ["Onam", "Vishu", "Eid", "Christmas", "Party", "Day"];
 const PAGE_SIZE = 8;
+const MIN_SEARCH_CHARS = 3;
+
+function searchQueryFromDraft(value: string) {
+  const trimmed = value.trim();
+  return trimmed.length >= MIN_SEARCH_CHARS ? trimmed : "";
+}
 
 export function ShopClient({ products: catalog }: { products: Product[] }) {
   const params = useSearchParams();
@@ -30,11 +36,46 @@ export function ShopClient({ products: catalog }: { products: Product[] }) {
   const [searchDraft, setSearchDraft] = useState(q);
   const resultsRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const liveQuery = searchQueryFromDraft(searchDraft);
+  const paramsString = params.toString();
 
   useEffect(() => {
     if (params.get("focus") !== "search") return;
     searchInputRef.current?.focus();
   }, [params]);
+
+  useEffect(() => {
+    const field = searchInputRef.current;
+    if (field && document.activeElement === field) return;
+    setSearchDraft((draft) =>
+      searchQueryFromDraft(draft) === q ? draft : q,
+    );
+  }, [q]);
+
+  useEffect(() => {
+    const syncFromHistory = () => {
+      const nextQ = new URLSearchParams(window.location.search).get("q") ?? "";
+      setSearchDraft(nextQ);
+    };
+    window.addEventListener("popstate", syncFromHistory);
+    return () => window.removeEventListener("popstate", syncFromHistory);
+  }, []);
+
+  useEffect(() => {
+    const current = new URLSearchParams(paramsString);
+    if (liveQuery === (current.get("q") ?? "")) return;
+
+    const timer = window.setTimeout(() => {
+      const next = new URLSearchParams(paramsString);
+      if (liveQuery) next.set("q", liveQuery);
+      else next.delete("q");
+      next.delete("page");
+      const qs = next.toString();
+      router.replace(qs ? `/shop?${qs}` : "/shop", { scroll: false });
+    }, 200);
+
+    return () => window.clearTimeout(timer);
+  }, [liveQuery, paramsString, router]);
 
   const colorOptions = useMemo(() => {
     const set = new Set<string>();
@@ -51,28 +92,38 @@ export function ShopClient({ products: catalog }: { products: Product[] }) {
         size,
         occasion,
         color,
-        q,
+        q: liveQuery,
         sort,
       }),
-    [catalog, category, size, occasion, color, q, sort],
+    [catalog, category, size, occasion, color, liveQuery, sort],
   );
 
   const totalPages = Math.max(1, Math.ceil(products.length / PAGE_SIZE));
-  const currentPage = Math.min(
-    Math.max(1, Number.isFinite(pageFromUrl) ? pageFromUrl : 1),
-    totalPages,
-  );
+  const queryMatchesUrl = liveQuery === q;
+  const currentPage = queryMatchesUrl
+    ? Math.min(
+        Math.max(1, Number.isFinite(pageFromUrl) ? pageFromUrl : 1),
+        totalPages,
+      )
+    : 1;
   const pageStart = (currentPage - 1) * PAGE_SIZE;
   const pageProducts = products.slice(pageStart, pageStart + PAGE_SIZE);
   const showingFrom = products.length === 0 ? 0 : pageStart + 1;
   const showingTo = pageStart + pageProducts.length;
 
-  const setParam = (key: string, value: string) => {
+  const setParam = (
+    key: string,
+    value: string,
+    opts?: { replace?: boolean },
+  ) => {
     const next = new URLSearchParams(params.toString());
     if (!value || value === "all") next.delete(key);
     else next.set(key, value);
     if (key !== "page") next.delete("page");
-    router.push(`/shop?${next.toString()}`);
+    const qs = next.toString();
+    const href = qs ? `/shop?${qs}` : "/shop";
+    if (opts?.replace) router.replace(href, { scroll: false });
+    else router.push(href);
   };
 
   const setPage = (page: number) => {
@@ -84,7 +135,9 @@ export function ShopClient({ products: catalog }: { products: Product[] }) {
   };
 
   const submitSearch = (value: string) => {
-    setParam("q", value.trim());
+    const nextQ = searchQueryFromDraft(value);
+    if (nextQ === q) return;
+    setParam("q", nextQ, { replace: true });
   };
 
   return (
@@ -153,14 +206,11 @@ export function ShopClient({ products: catalog }: { products: Product[] }) {
         >
           Search
         </button>
-        {q ? (
+        {liveQuery ? (
           <button
             type="button"
             className="border border-line px-4 py-2 font-display text-[10px] tracking-[0.16em] text-muted"
-            onClick={() => {
-              setSearchDraft("");
-              setParam("q", "");
-            }}
+            onClick={() => setSearchDraft("")}
           >
             Clear
           </button>
