@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { formatINR } from "@/lib/format";
 import { adminFetch } from "@/lib/admin/client";
+import { ORDER_ALERT_EVENT } from "@/lib/alerts/events";
 import { useAdminResource } from "@/lib/admin/useAdminResource";
 import type { SerializedOrder } from "@/lib/checkout/types";
 
@@ -46,6 +47,19 @@ export default function AdminOrdersPage() {
 
   const orders = data?.orders ?? [];
   const counts = data?.counts ?? {};
+  const reloadRef = useRef(reload);
+
+  useEffect(() => {
+    reloadRef.current = reload;
+  }, [reload]);
+
+  useEffect(() => {
+    function onAlert() {
+      reloadRef.current();
+    }
+    window.addEventListener(ORDER_ALERT_EVENT, onAlert);
+    return () => window.removeEventListener(ORDER_ALERT_EVENT, onAlert);
+  }, []);
 
   async function setOrderStatus(
     orderId: string,

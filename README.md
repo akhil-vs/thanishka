@@ -133,6 +133,8 @@ Identity is a shared `User` model with `RoleAssignment` (`ADMIN`, `SHOP_OWNER`, 
 
 Webhook (required in Production): Razorpay → `POST /api/checkout/webhook` for `payment.captured` only.
 
+When a COD order is confirmed or a prepaid order is marked paid, Studio and Admin show an order alert (sound, toast, and the bell). The orders list refreshes while the desk is open. The same details are sent on WhatsApp when `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, and a recipient (`SHOP_ALERT_WHATSAPP`, the shop record, or `STORE_WHATSAPP`) are set. Use an approved utility template (`WHATSAPP_TEMPLATE_NAME`, five body variables: order number, customer, total and payment, items, ship-to). The sender and the recipient must be different numbers. Checkout still completes if WhatsApp is not configured or the send fails. `GET/POST /api/admin/notifications` lists alerts and marks them read.
+
 Admin / Studio **Orders** desk: list, pack/ship/deliver, cancel (restocks held inventory).
 
 Admin / Studio **Feedback** inbox: moderate order-linked notes from delivered customers; publish quotes to the homepage.
