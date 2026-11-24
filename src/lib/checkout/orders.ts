@@ -15,6 +15,7 @@ import {
   type PricedLine,
   toPaise,
 } from "@/lib/checkout/pricing";
+import { queueShopOrderAlert } from "@/lib/alerts/notify-order";
 import { createOrderAccessToken } from "@/lib/checkout/access-token";
 import type { SerializedOrder } from "@/lib/checkout/types";
 import { getRazorpayClient, getRazorpayConfig } from "@/lib/razorpay";
@@ -310,6 +311,8 @@ export async function createCheckoutOrder(input: CreateCheckoutInput) {
       return created;
     });
 
+    await queueShopOrderAlert(order.id);
+
     return {
       mode: "cod" as const,
       order: serializeOrder(order),
@@ -453,6 +456,13 @@ export async function markOrderPaid(opts: {
     }
     return paid;
   });
+
+  if (
+    order.status === OrderStatus.PENDING_PAYMENT &&
+    updated.status === OrderStatus.PAID
+  ) {
+    await queueShopOrderAlert(updated.id);
+  }
 
   return serializeOrder(updated);
 }

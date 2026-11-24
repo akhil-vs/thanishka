@@ -15,6 +15,7 @@ import {
   ScrollText,
   Warehouse,
 } from "lucide-react";
+import { OrderAlerts } from "@/components/backoffice/OrderAlerts";
 import { cn } from "@/lib/format";
 import { authFetch } from "@/lib/auth/client";
 
@@ -106,6 +107,7 @@ export function BackofficeShell({
         </aside>
 
         <div className="min-w-0 flex-1 px-4 py-6 md:px-0 md:py-8">
+          <OrderAlerts basePath={basePath} />
           <div className="mb-6 flex gap-2 overflow-x-auto md:hidden">
             {links.map((link) => (
               <Link

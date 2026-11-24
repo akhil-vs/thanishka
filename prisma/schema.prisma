@@ -199,6 +199,13 @@ enum PaymentMethod {
   COD
 }
 
+enum WhatsAppDelivery {
+  PENDING
+  SENT
+  SKIPPED
+  FAILED
+}
+
 model Order {
   id                  String        @id @default(cuid())
   orderNumber         String        @unique @map("order_number")
@@ -232,6 +239,7 @@ model Order {
   discount Discount?   @relation(fields: [discountId], references: [id], onDelete: SetNull)
   items    OrderItem[]
   feedback Feedback?
+  alert    OrderAlert?
 
   @@index([userId])
   @@index([status])
@@ -257,6 +265,23 @@ model OrderItem {
   @@index([orderId])
   @@index([productId])
   @@map("order_items")
+}
+
+model OrderAlert {
+  id             String           @id @default(cuid())
+  orderId        String           @unique @map("order_id")
+  title          String
+  body           String
+  readAt         DateTime?        @map("read_at")
+  whatsappStatus WhatsAppDelivery @default(PENDING) @map("whatsapp_status")
+  whatsappError  String?          @map("whatsapp_error")
+  createdAt      DateTime         @default(now()) @map("created_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([readAt])
+  @@map("order_alerts")
 }
 
 model Offer {

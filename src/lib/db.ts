@@ -31,8 +31,10 @@ export type {
   Announcement,
   StockMovement,
   Order,
+  OrderAlert,
   OrderItem,
   OrderStatus,
   PaymentMethod,
   Role,
+  WhatsAppDelivery,
 } from "@prisma/client";
