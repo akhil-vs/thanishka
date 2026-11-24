@@ -106,6 +106,10 @@ body {
   animation: fade-up 0.7s ease both;
 }
 
+.animate-dialog-in {
+  animation: fade-up 0.28s ease both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -113,6 +117,8 @@ body {
 
   .marquee-track,
   .animate-fade-up,
+  .animate-dialog-in,
+  .product-card-actions,
   .product-card-image,
   .hero-parallax {
     animation: none !important;
@@ -139,6 +145,27 @@ body {
 
 .product-card-secondary {
   opacity: 0;
+}
+
+.product-card-actions {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
+}
+
+@media (hover: hover) and (min-width: 768px) {
+  .product-card-actions {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+
+  .product-card:hover .product-card-actions,
+  .product-card:focus-within .product-card-actions {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .scrollbar-hide {

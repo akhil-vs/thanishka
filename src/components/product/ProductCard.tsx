@@ -3,10 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useId, useState } from "react";
-import { Heart, X } from "lucide-react";
+import { Eye, Heart, X } from "lucide-react";
 import { isAppHostedImageRef } from "@/lib/image-ref";
 import type { Product, Size } from "@/lib/products";
 import { formatINR, cn } from "@/lib/format";
+import { QuickLook } from "@/components/product/QuickLook";
 import { useCart } from "@/store/cart";
 import { useWishlist } from "@/store/wishlist";
 import { useUI } from "@/store/ui";
@@ -25,6 +26,7 @@ export function ProductCard({
   const addItem = useCart((s) => s.addItem);
   const openCart = useUI((s) => s.openCart);
   const [pickingSize, setPickingSize] = useState(false);
+  const [quickLook, setQuickLook] = useState(false);
   const titleId = useId();
 
   useEffect(() => {
@@ -89,20 +91,32 @@ export function ProductCard({
           />
         </button>
 
-        <button
-          type="button"
-          className="absolute inset-x-3 bottom-3 translate-y-2 bg-ivory/95 py-2.5 font-display text-[10px] tracking-[0.18em] opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100 max-md:translate-y-0 max-md:opacity-100"
-          onClick={() => {
-            if (inStockSizes.length === 0) return;
-            setPickingSize(true);
-          }}
-        >
-          {inStockSizes.length === 0 ? "Sold out" : "Quick Add"}
-        </button>
+        <div className="product-card-actions absolute inset-x-2 bottom-2 z-10 flex gap-1.5">
+          <button
+            type="button"
+            aria-haspopup="dialog"
+            aria-expanded={quickLook}
+            onClick={() => setQuickLook(true)}
+            className="flex min-w-0 flex-1 items-center justify-center gap-1 bg-ivory/95 px-1 py-2.5 font-display text-[9px] tracking-[0.12em] sm:text-[10px] sm:tracking-[0.14em]"
+          >
+            <Eye size={13} strokeWidth={1.5} aria-hidden className="hidden shrink-0 sm:block" />
+            <span className="truncate">Quick look</span>
+          </button>
+          <button
+            type="button"
+            className="min-w-0 flex-1 truncate bg-charcoal px-1 py-2.5 font-display text-[9px] tracking-[0.12em] text-ivory sm:text-[10px] sm:tracking-[0.14em]"
+            onClick={() => {
+              if (inStockSizes.length === 0) return;
+              setPickingSize(true);
+            }}
+          >
+            {inStockSizes.length === 0 ? "Sold out" : "Quick add"}
+          </button>
+        </div>
 
         {pickingSize ? (
           <div
-            className="absolute inset-0 z-10 flex flex-col justify-end bg-ink/45 p-3"
+            className="absolute inset-0 z-20 flex flex-col justify-end bg-ink/45 p-3"
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}
@@ -174,6 +188,9 @@ export function ProductCard({
           )}
         </div>
       </div>
+      {quickLook ? (
+        <QuickLook product={product} onClose={() => setQuickLook(false)} />
+      ) : null}
     </article>
   );
 }
