@@ -142,17 +142,50 @@ export function ShopClient({ products: catalog }: { products: Product[] }) {
 
   return (
     <div className="container-page py-10 md:py-14">
-      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <p className="font-display text-[11px] tracking-[0.22em] text-kasavu-deep">
-            Boutique
-          </p>
-          <h1 className="mt-2 font-display text-3xl tracking-[0.14em]">Shop</h1>
-          <p className="mt-2 font-serif text-muted">
-            {products.length} readymade pieces · sized XS–XXL
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
+      <h1 className="sr-only">Shop</h1>
+      <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-center">
+        <form
+          className="flex min-w-0 flex-1 gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            submitSearch(searchDraft);
+          }}
+        >
+          <label className="sr-only" htmlFor="shop-search">
+            Search dresses
+          </label>
+          <div className="relative flex-1">
+            <Search
+              size={16}
+              strokeWidth={1.5}
+              className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted"
+            />
+            <input
+              id="shop-search"
+              ref={searchInputRef}
+              value={searchDraft}
+              onChange={(e) => setSearchDraft(e.target.value)}
+              placeholder="Search by name, fabric, colour, occasion…"
+              className="w-full border border-line bg-transparent py-2.5 pr-3 pl-10 text-sm outline-none focus:border-kasavu"
+            />
+          </div>
+          <button
+            type="submit"
+            className="border border-charcoal bg-charcoal px-4 py-2 font-display text-[10px] tracking-[0.16em] text-ivory"
+          >
+            Search
+          </button>
+          {liveQuery ? (
+            <button
+              type="button"
+              className="border border-line px-4 py-2 font-display text-[10px] tracking-[0.16em] text-muted"
+              onClick={() => setSearchDraft("")}
+            >
+              Clear
+            </button>
+          ) : null}
+        </form>
+        <div className="flex shrink-0 flex-wrap items-center gap-3">
           <button
             className="border border-line px-4 py-2 font-display text-[10px] tracking-[0.16em] md:hidden"
             onClick={() => setOpenFilters((v) => !v)}
@@ -174,48 +207,6 @@ export function ShopClient({ products: catalog }: { products: Product[] }) {
           </label>
         </div>
       </div>
-
-      <form
-        className="mb-8 flex gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          submitSearch(searchDraft);
-        }}
-      >
-        <label className="sr-only" htmlFor="shop-search">
-          Search dresses
-        </label>
-        <div className="relative flex-1">
-          <Search
-            size={16}
-            strokeWidth={1.5}
-            className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted"
-          />
-          <input
-            id="shop-search"
-            ref={searchInputRef}
-            value={searchDraft}
-            onChange={(e) => setSearchDraft(e.target.value)}
-            placeholder="Search by name, fabric, colour, occasion…"
-            className="w-full border border-line bg-transparent py-2.5 pr-3 pl-10 text-sm outline-none focus:border-kasavu"
-          />
-        </div>
-        <button
-          type="submit"
-          className="border border-charcoal bg-charcoal px-4 py-2 font-display text-[10px] tracking-[0.16em] text-ivory"
-        >
-          Search
-        </button>
-        {liveQuery ? (
-          <button
-            type="button"
-            className="border border-line px-4 py-2 font-display text-[10px] tracking-[0.16em] text-muted"
-            onClick={() => setSearchDraft("")}
-          >
-            Clear
-          </button>
-        ) : null}
-      </form>
 
       <div className="grid items-start gap-8 md:grid-cols-[220px_1fr]">
         <aside
