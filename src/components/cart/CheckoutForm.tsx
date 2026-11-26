@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { formatINR } from "@/lib/format";
 import { authFetch } from "@/lib/auth/client";
-import { RazorpayPaymentButton } from "@/components/cart/RazorpayPaymentButton";
 import { openRazorpayCheckout } from "@/lib/checkout/razorpay-browser";
 import { FREE_SHIPPING_THRESHOLD } from "@/lib/checkout/constants";
 import { useCart, type CartItem } from "@/store/cart";
@@ -344,8 +343,7 @@ export function CheckoutForm({ items }: { items: CartItem[] }) {
         </p>
       ) : null}
 
-      <div className="mt-5 space-y-3">
-      <form id="bag-checkout" className="space-y-3" onSubmit={onSubmit}>
+      <form className="mt-5 space-y-3" onSubmit={onSubmit}>
         <input
           required
           value={name}
@@ -451,11 +449,7 @@ export function CheckoutForm({ items }: { items: CartItem[] }) {
             Cash on delivery
           </label>
         </fieldset>
-      </form>
 
-      {paymentMethod === "razorpay" ? <RazorpayPaymentButton /> : null}
-
-      <div className="space-y-3">
         <div className="space-y-2 border-t border-line pt-4 text-sm">
           <div className="flex justify-between">
             <span className="text-muted">Subtotal</span>
@@ -481,7 +475,6 @@ export function CheckoutForm({ items }: { items: CartItem[] }) {
 
         <Button
           type="submit"
-          form="bag-checkout"
           className="w-full"
           disabled={items.length === 0 || busy}
         >
@@ -495,8 +488,7 @@ export function CheckoutForm({ items }: { items: CartItem[] }) {
           Prices and stock are confirmed on the server. Free shipping above{" "}
           {formatINR(FREE_SHIPPING_THRESHOLD)}.
         </p>
-      </div>
-      </div>
+      </form>
     </aside>
   );
 }
