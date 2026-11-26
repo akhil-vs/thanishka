@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ButtonLink } from "@/components/ui/Button";
 import { CheckoutForm } from "@/components/cart/CheckoutForm";
+import { RazorpayPaymentButton } from "@/components/cart/RazorpayPaymentButton";
 import { formatINR } from "@/lib/format";
 import { isAppHostedImageRef } from "@/lib/image-ref";
 import { useCart } from "@/store/cart";
@@ -98,6 +99,7 @@ export default function CartPage() {
           <p className="mt-4 font-serif text-muted">
             Add pieces to your bag to pay with Razorpay or cash on delivery.
           </p>
+          <RazorpayPaymentButton className="mt-6" />
         </aside>
       )}
     </div>
