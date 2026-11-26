@@ -176,9 +176,3 @@ body {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
-
-/* Razorpay injects its own button inside this form. Stretch it to the column. */
-.razorpay-embed .razorpay-payment-button {
-  display: block;
-  width: 100%;
-}
